@@ -15,6 +15,9 @@
     "lint": "eslint . --ext .vue, .js, .ts --fix"
   },
   "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "http-proxy-middleware": "^3.0.5",
     "pinia": "^3.0.3",
     "vue": "^3.5.22",
     "vue-router": "^4.5.1"
