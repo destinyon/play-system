@@ -1,0 +1,7 @@
+node_modules
+package-lock.json
+mcp
+package.json
+scripts
+.vscode
+.DS_Store

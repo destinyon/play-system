@@ -23,32 +23,42 @@
       </button>
     </div>
 
-    <!-- Side panel -->
-    <aside :class="['gdmap__panel', { 'gdmap__panel--collapsed': isPanelCollapsed }]">
-      <header class="panel__header">
-        <h2>地图工具</h2>
-        <small class="muted">当前位置：<span v-if="currentLngLat">{{ currentLngLat[0].toFixed(6) }}, {{ currentLngLat[1].toFixed(6) }}</span><span v-else>定位中…</span></small>
+    <!-- Side panel (draggable + collapsible) -->
+    <aside
+      v-show="!isPanelCollapsed"
+      ref="panelRef"
+      class="gdmap__panel gdmap__panel--left"
+      :style="panelStyle"
+      @mousedown.self="startDragPanel"
+    >
+      <header class="panel__header" @mousedown.prevent="startDragPanel">
+        <h2 class="font">地图工具</h2>
+        <div class="panel__right">
+          <small class="muted">当前位置：<span v-if="currentPlaceName">{{ currentPlaceName }}</span><span v-else>定位中…</span></small>
+          <button class="btn-toggle" @click="togglePanel" title="折叠">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 12H5" stroke-linecap="round"/>
+              <path d="M12 5l-7 7 7 7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
       </header>
 
-      <div v-if="noProxy" class="panel__warn">
-        正在直连高德服务（未设置代理）。建议在生产环境配置 VITE_AMAP_PROXY_HOST 和安全密钥。
-      </div>
-      <div v-else-if="proxyDown" class="panel__warn panel__warn--danger">
-        代理不可达，已自动直连高德 REST。请检查本机 9090 端口或 nginx 配置。
-      </div>
+      
 
       <section class="panel__section">
         <h3>标记点</h3>
-        <p class="muted">单击地图添加标记，或使用下方按钮。</p>
+        <p class="muted">单击地图添加标记，或清空除“当前位置”的标记。</p>
         <div class="actions">
-          <button class="btn" @click="addMarkerAtCenter">在中心添加</button>
-          <button class="btn" @click="clearMarkers" :disabled="markers.length === 0">清空标记</button>
+          <button class="btn btn--danger" @click="clearMarkers" :disabled="markers.length <= 1">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6v14a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6"/><path d="M10 11v6M14 11v6"/></svg>
+            清空标记
+          </button>
         </div>
         <ul class="marker-list" v-if="markers.length">
           <li v-for="m in markers" :key="m.id" class="marker-item">
             <div class="marker-meta" @click="flyTo(m.lnglat)">
               <strong>{{ m.name }}</strong>
-              <small>{{ m.lnglat[0].toFixed(6) }}, {{ m.lnglat[1].toFixed(6) }}</small>
               <small v-if="m.address" class="marker-addr">{{ m.address }}</small>
             </div>
             <div class="marker-actions">
@@ -65,47 +75,42 @@
         <h3>步行路线规划</h3>
         <div class="route-row">
           <label>起点：</label>
-          <select v-model="originId">
+          <select v-model="originId" class="select">
             <option :value="''">未选择</option>
             <option v-for="m in markers" :key="m.id" :value="m.id">{{ m.name }}</option>
           </select>
         </div>
         <div class="route-row">
           <label>终点：</label>
-          <select v-model="destinationId">
+          <select v-model="destinationId" class="select">
             <option :value="''">未选择</option>
             <option v-for="m in markers" :key="m.id" :value="m.id">{{ m.name }}</option>
           </select>
         </div>
         <div class="actions">
-          <button class="btn" @click="planWalkingRoute" :disabled="!originId || !destinationId">规划步行</button>
-          <button class="btn" @click="clearRoute" :disabled="!routePlotted">清除路线</button>
+          <button class="btn btn--primary" @click="planWalkingRoute" :disabled="!originId || !destinationId">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+            规划步行
+          </button>
+          <button class="btn btn--secondary" @click="clearRoute" :disabled="!routePlotted">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l16 16"/><path d="M20 4L4 20"/></svg>
+            清除路线
+          </button>
         </div>
         <div class="route-summary" v-if="routeSummary">
           <div class="summary-item"><span>距离</span><strong>{{ routeSummary.distanceText }}</strong></div>
           <div class="summary-item"><span>预计时间</span><strong>{{ routeSummary.durationText }}</strong></div>
         </div>
         <div class="route-steps">
-          <template v-if="routeSteps.length">
-            <ol class="steps">
-              <li v-for="s in routeSteps" :key="s.idx" class="step-item">
-                <span class="step-index">{{ s.idx }}</span>
-                <span class="step-text">{{ s.text || '按路况前行' }}</span>
-              </li>
-            </ol>
-          </template>
-          <p v-else class="muted">提示：先选择起点与终点并点击“规划步行”。</p>
+          <p class="muted">提示：选择起点与终点后点击“规划步行”。详细走法可在卡片中点击“路线具体详情”。</p>
         </div>
       </section>
 
-      <footer class="panel__footer">
-        <span class="muted">提示：允许浏览器定位以自动居中。</span>
-      </footer>
     </aside>
 
-    <!-- 路线信息卡片 -->
-    <div v-if="routePlotted && routeSummary" class="route-info-card">
-      <div class="route-info-header">
+    <!-- 路线信息卡片（可拖动，包含起终点） -->
+    <div v-if="routePlotted && routeSummary" ref="routeCardRef" class="route-info-card" :style="{ top: routeCardPos.top + 'px', left: routeCardPos.left + 'px' }">
+      <div class="route-info-header" @mousedown.prevent="startDrag">
         <h3>🚶 步行路线</h3>
         <button class="btn-close-card" @click="clearRoute" title="清除路线">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -113,6 +118,10 @@
             <line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
         </button>
+      </div>
+      <div class="route-endpoints">
+        <div class="ep origin"><span class="dot dot--origin"></span><strong>起点</strong>：{{ originName }}</div>
+        <div class="ep dest"><span class="dot dot--dest"></span><strong>终点</strong>：{{ destinationName }}</div>
       </div>
       <div class="route-info-body">
         <div class="route-info-item">
@@ -135,11 +144,46 @@
           </div>
         </div>
       </div>
+      <div class="route-info-actions">
+        <button class="btn btn--secondary" @click="showRouteDetails = true" :disabled="!routeSteps.length">路线具体详情</button>
+      </div>
+    </div>
+
+    <!-- 路线具体详情卡片 -->
+    <div v-if="showRouteDetails && routeSteps.length" class="route-steps-panel">
+      <div class="steps-header">
+        <h3>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;">
+            <path d="M3 12h18M3 6h18M3 18h18"/>
+          </svg>
+          路线具体详情
+        </h3>
+        <button class="btn-icon" @click="showRouteDetails = false" title="关闭">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <ul class="steps-list">
+        <li v-for="s in routeSteps" :key="s.idx" class="step-item">
+          <span class="step-index">{{ s.idx }}</span>
+          <span class="step-text">{{ s.text || '按路况前行' }}</span>
+        </li>
+      </ul>
     </div>
 
     <!-- Map container -->
     <div ref="mapContainer" class="gdmap__container"></div>
     <div v-if="error" class="gdmap__error">{{ error }}</div>
+
+    <!-- 折叠后的浮动按钮 -->
+    <button v-if="isPanelCollapsed" class="panel-fab" @click="togglePanel" title="展开工具面板">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M5 12h14" stroke-linecap="round"/>
+        <path d="M12 19l7-7-7-7" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
 
     <!-- Custom Add-Marker Modal -->
     <div v-if="showAddModal" class="modal__mask" @click.self="cancelAdd">
@@ -164,7 +208,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref, computed } from 'vue'
+import { onMounted, onBeforeUnmount, ref, computed, nextTick } from 'vue'
 
 // Load the AMap JS SDK with proxy-based security configuration.
 type AMapMap = {
@@ -196,8 +240,13 @@ type AMapSDK = {
     showDir?: boolean;
     strokeColor?: string;
     strokeWeight?: number;
+    strokeOpacity?: number;
+    isOutline?: boolean;
+    outlineColor?: string;
+    strokeStyle?: string;
     lineJoin?: string;
     lineCap?: string;
+    [key: string]: any;
   }) => unknown
   InfoWindow: new (opts: {
     content: string;
@@ -291,6 +340,7 @@ function setCachedLocation(lnglat: [number, number]) {
 type MarkerItem = { id: string; name: string; lnglat: [number, number]; overlay?: unknown; address?: string }
 const markers = ref<MarkerItem[]>([])
 const currentLngLat = ref<[number, number] | null>(null)
+const currentPlaceName = ref('')
 const originId = ref('')
 const destinationId = ref('')
 const routePlotted = ref(false)
@@ -315,6 +365,31 @@ const selectedMarker = computed(() => markers.value.find(m => m.id === selectedM
 // 面板折叠状态
 const isPanelCollapsed = ref(false)
 
+// 可拖动的路线信息卡片
+const routeCardRef = ref<HTMLDivElement | null>(null)
+const routeCardPos = ref({ top: 20, left: 20 })
+let dragging = false
+let dragStart = { x: 0, y: 0, left: 0, top: 0 }
+// 路线详情显示开关
+const showRouteDetails = ref(false)
+
+// 侧边面板可拖拽
+const panelRef = ref<HTMLDivElement | null>(null)
+const panelPos = ref({ left: 20, top: 20 })
+let panelDragging = false
+let panelStart = { x: 0, y: 0, left: 20, top: 20 }
+// 保存面板尺寸，折叠/展开时保持尺寸不变
+const panelSize = ref<{ w: number; h: number } | null>(null)
+
+const panelStyle = computed(() => {
+  const style: Record<string, string> = {
+    left: panelPos.value.left + 'px',
+    top: panelPos.value.top + 'px',
+  }
+  if (panelSize.value?.w) style.width = panelSize.value.w + 'px'
+  return style
+})
+
 // 地图工具状态：'marker' 或 'drag'
 const mapTool = ref<'marker' | 'drag'>('drag')
 
@@ -324,7 +399,64 @@ function selectMarker(m: MarkerItem) {
 }
 
 function togglePanel() {
-  isPanelCollapsed.value = !isPanelCollapsed.value
+  if (!isPanelCollapsed.value) {
+    // 即将折叠，记录当前尺寸
+    const el = panelRef.value
+    if (el) {
+      const rect = el.getBoundingClientRect()
+      panelSize.value = { w: Math.round(rect.width), h: Math.round(rect.height) }
+    }
+    isPanelCollapsed.value = true
+  } else {
+    // 展开，保持之前的尺寸
+    isPanelCollapsed.value = false
+    // 等待渲染后再根据容器边界微调位置
+    nextTick(() => {
+      const container = mapContainer.value
+      const el = panelRef.value
+      if (!container || !el) return
+      const cw = container.clientWidth
+      const ch = container.clientHeight
+      const rect = el.getBoundingClientRect()
+      const w = Math.round(panelSize.value?.w || rect.width)
+      const h = Math.round(rect.height)
+      let left = panelPos.value.left
+      let top = panelPos.value.top
+      left = Math.max(8, Math.min(cw - w - 8, left))
+      top = Math.max(8, Math.min(ch - h - 8, top))
+      panelPos.value = { left, top }
+    })
+  }
+}
+
+function startDragPanel(ev: MouseEvent) {
+  panelDragging = true
+  panelStart = { x: ev.clientX, y: ev.clientY, left: panelPos.value.left, top: panelPos.value.top }
+  window.addEventListener('mousemove', onDragPanel)
+  window.addEventListener('mouseup', stopDragPanel)
+}
+function onDragPanel(ev: MouseEvent) {
+  if (!panelDragging) return
+  const container = mapContainer.value
+  const panel = panelRef.value
+  if (!container || !panel) return
+  const dx = ev.clientX - panelStart.x
+  const dy = ev.clientY - panelStart.y
+  const rect = panel.getBoundingClientRect()
+  const cw = container.clientWidth
+  const ch = container.clientHeight
+  const w = rect.width
+  const h = rect.height
+  let left = panelStart.left + dx
+  let top = panelStart.top + dy
+  left = Math.max(8, Math.min(cw - w - 8, left))
+  top = Math.max(8, Math.min(ch - h - 8, top))
+  panelPos.value = { left, top }
+}
+function stopDragPanel() {
+  panelDragging = false
+  window.removeEventListener('mousemove', onDragPanel)
+  window.removeEventListener('mouseup', stopDragPanel)
 }
 
 function setMapTool(tool: 'marker' | 'drag') {
@@ -358,31 +490,48 @@ onMounted(async () => {
     if (cached) {
       currentLngLat.value = cached.lnglat
       mapInstance!.setZoomAndCenter(15, cached.lnglat)
+      let marker: any = null
       try {
-        const marker = new AMap.Marker({ 
+        marker = new AMap.Marker({ 
           position: cached.lnglat, 
           title: '我的位置',
-          icon: '//a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png'
+          icon: markerIcon('#10b981') as any
         })
         mapInstance!.add(marker)
       } catch (e) {}
+      try {
+        const geo = await reverseGeocode(cached.lnglat)
+        currentPlaceName.value = geo.name
+      } catch {}
+      // 添加到列表并设为默认起点
+      const id = `${cached.lnglat[0]}_${cached.lnglat[1]}_${Date.now()}`
+  markers.value.push({ id, name: '我的位置', lnglat: cached.lnglat, overlay: marker, address: currentPlaceName.value })
+      originId.value = id
     } else if ('geolocation' in navigator) {
       // 首次加载时获取位置并缓存
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
+        async (pos) => {
           const { longitude, latitude } = pos.coords
           const lnglat: [number, number] = [longitude, latitude]
           currentLngLat.value = lnglat
           setCachedLocation(lnglat) // 缓存位置
           mapInstance!.setZoomAndCenter(15, lnglat)
+          let marker: any = null
           try {
-            const marker = new AMap.Marker({ 
+            marker = new AMap.Marker({ 
               position: lnglat, 
               title: '我的位置',
-              icon: '//a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png'
+              icon: markerIcon('#10b981') as any
             })
             mapInstance!.add(marker)
           } catch (e) {}
+          try {
+            const geo = await reverseGeocode(lnglat)
+            currentPlaceName.value = geo.name
+          } catch {}
+          const id = `${lnglat[0]}_${lnglat[1]}_${Date.now()}`
+          markers.value.push({ id, name: '我的位置', lnglat, overlay: marker, address: currentPlaceName.value })
+          originId.value = id
         },
         (err) => {
           console.warn('定位失败：', err.message)
@@ -431,15 +580,24 @@ onBeforeUnmount(() => {
 })
 
 // Helpers
+function markerIcon(color: string) {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='34' height='34' viewBox='0 0 24 24' fill='${color}' stroke='${color}' stroke-width='1.2'><path d='M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1118 0z'/><circle cx='12' cy='10' r='3' fill='white' stroke='white' stroke-width='1.2'/></svg>`
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
+}
 function addMarker(lnglat: [number, number], name?: string, address?: string) {
   if (!mapInstance || !AMapRef) return
   const id = `${lnglat[0]}_${lnglat[1]}_${Date.now()}`
   const displayName = name || `标记 ${markers.value.length + 1}`
   let overlay: any
   try {
+    // 根据是否为起点/终点/普通标记选择颜色
+    const role = getRoleForCoords(lnglat)
+    const iconColor = role === 'origin' ? '#10b981' : role === 'destination' ? '#ef4444' : '#3b82f6'
+  const svg = markerIcon(iconColor)
     overlay = new AMapRef.Marker({ 
       position: lnglat, 
       title: displayName,
+      icon: svg as any,
       extData: { id, name: displayName, address }
     })
     
@@ -465,27 +623,28 @@ function addMarker(lnglat: [number, number], name?: string, address?: string) {
   markers.value.push({ id, name: displayName, lnglat, overlay, address })
 }
 
-function addMarkerAtCenter() {
-  if (!mapInstance) return
-  // 无类型 Map 的 getCenter 尝试
-  // @ts-ignore
-  const c = mapInstance.getCenter?.()
-  const lng = c?.getLng?.() ?? c?.lng ?? 116.397428
-  const lat = c?.getLat?.() ?? c?.lat ?? 39.90923
-  addMarker([lng, lat])
-}
-
 function clearMarkers() {
   if (!mapInstance) return
-  // 简化处理：不一一从地图移除，依赖 AMap 自动清理；如需严格移除，请遍历并调用 mapInstance.remove
-  markers.value = []
+  // 仅保留“当前位置”（认为是 markers 中第一个，且名称含“我的位置”或等于 currentPlaceName）
+  const keep = markers.value.find(m => m.name === '我的位置' || m.name === currentPlaceName.value)
+  // 从地图上移除其余覆盖物
+  markers.value.forEach(m => {
+    if (keep && m.id === keep.id) return
+    try { (mapInstance as any).remove && (mapInstance as any).remove(m.overlay) } catch {}
+  })
+  markers.value = keep ? [keep] : []
+  // 同时重置起点为当前位置
+  if (keep) originId.value = keep.id
 }
 
 function removeMarker(id: string) {
   const idx = markers.value.findIndex((m) => m.id === id)
   if (idx >= 0) {
-    // TODO: 如需显示从地图移除，保存并调用 map.remove
-    markers.value.splice(idx, 1)
+    const m = markers.value[idx]
+    if (m) {
+      try { (mapInstance as any)?.remove?.(m.overlay) } catch {}
+      markers.value.splice(idx, 1)
+    }
   }
 }
 
@@ -496,6 +655,8 @@ function flyTo(lnglat: [number, number]) {
 function setAs(type: 'origin' | 'destination', m: MarkerItem) {
   if (type === 'origin') originId.value = m.id
   else destinationId.value = m.id
+  // 更新对应标记颜色
+  recolorMarkers()
 }
 
 function planRoute() {
@@ -552,22 +713,36 @@ async function planWalkingRoute() {
         path,
         showDir: true,
         strokeColor: '#2563eb',
-        strokeWeight: 5,
+        strokeWeight: 6,
+        strokeOpacity: 0.95,
+        isOutline: true as any,
+        outlineColor: '#93c5fd' as any,
+        strokeStyle: 'solid',
         lineJoin: 'round',
         lineCap: 'round',
       })
       try { (mapInstance as any).add(routePolyline) } catch {}
+      // 在地图上标注起点/终点名称
+      try {
+        addTextLabel(origin.lnglat, origin.name, 'origin')
+        addTextLabel(dest.lnglat, dest.name, 'destination')
+      } catch {}
       // 自动适配路线并折叠左侧面板
       try { 
         (mapInstance as any).setFitView && (mapInstance as any).setFitView([routePolyline], false, [100, 60, 60, 60])
       } catch {}
       isPanelCollapsed.value = true
+      await nextTick()
+      positionRouteCard()
     }
     routePlotted.value = true
+    showRouteDetails.value = false
   } catch (e) {
+    // 静默失败，不展示代理错误到前端
+    console.warn('步行路线规划失败：', e)
     routePlotted.value = false
     routeSummary.value = null
-    error.value = '步行路线规划失败（REST）。请检查网络或代理设置。'
+    error.value = null
   }
 }
 
@@ -578,10 +753,13 @@ function clearRoute() {
   routePlotted.value = false
   routeSummary.value = null
   routeSteps.value = []
+  showRouteDetails.value = false
   if (routePolyline && mapInstance) {
     try { (mapInstance as any).remove && (mapInstance as any).remove(routePolyline) } catch {}
     routePolyline = null
   }
+  // 移除文本标签
+  cleanupTextLabels()
 }
 
 // Reverse geocode: get nearest building/POI
@@ -718,6 +896,103 @@ function cancelAdd() {
   pendingLngLat.value = null
 }
 
+function positionRouteCard() {
+  const card = routeCardRef.value
+  const container = mapContainer.value
+  if (!card || !container) return
+  const cw = container.clientWidth
+  const ch = container.clientHeight
+  const rect = card.getBoundingClientRect()
+  const w = rect.width
+  const h = rect.height
+  routeCardPos.value = { left: Math.max(8, Math.min(cw - w - 8, Math.floor((cw - w) / 2))), top: 20 }
+}
+
+function startDrag(ev: MouseEvent) {
+  dragging = true
+  dragStart = { x: ev.clientX, y: ev.clientY, left: routeCardPos.value.left, top: routeCardPos.value.top }
+  window.addEventListener('mousemove', onDrag)
+  window.addEventListener('mouseup', stopDrag)
+}
+
+function onDrag(ev: MouseEvent) {
+  if (!dragging) return
+  const container = mapContainer.value
+  const card = routeCardRef.value
+  if (!container || !card) return
+  const dx = ev.clientX - dragStart.x
+  const dy = ev.clientY - dragStart.y
+  const rect = card.getBoundingClientRect()
+  const cw = container.clientWidth
+  const ch = container.clientHeight
+  const w = rect.width
+  const h = rect.height
+  let left = dragStart.left + dx
+  let top = dragStart.top + dy
+  left = Math.max(8, Math.min(cw - w - 8, left))
+  top = Math.max(8, Math.min(ch - h - 8, top))
+  routeCardPos.value = { left, top }
+}
+
+function stopDrag() {
+  dragging = false
+  window.removeEventListener('mousemove', onDrag)
+  window.removeEventListener('mouseup', stopDrag)
+}
+
+// 计算当前起终点名称（用于信息卡显示）
+const originName = computed(() => markers.value.find(m => m.id === originId.value)?.name || '—')
+const destinationName = computed(() => markers.value.find(m => m.id === destinationId.value)?.name || '—')
+
+// 工具：基于坐标判断角色（起点/终点/普通）
+function getRoleForCoords(lnglat: [number, number]) {
+  const o = markers.value.find(m => m.id === originId.value)
+  const d = markers.value.find(m => m.id === destinationId.value)
+  const eq = (a?: [number, number], b?: [number, number]) => !!a && !!b && Math.abs(a[0]-b[0])<1e-8 && Math.abs(a[1]-b[1])<1e-8
+  if (eq(o?.lnglat, lnglat)) return 'origin'
+  if (eq(d?.lnglat, lnglat)) return 'destination'
+  return 'normal'
+}
+
+// 根据角色为标记着色
+function recolorMarkers() {
+  if (!AMapRef) return
+  markers.value.forEach(m => {
+    const role = m.id === originId.value ? 'origin' : m.id === destinationId.value ? 'destination' : 'normal'
+    const color = role === 'origin' ? '#10b981' : role === 'destination' ? '#ef4444' : '#3b82f6'
+    try {
+      const svg = markerIcon(color)
+      ;(m.overlay as any)?.setIcon?.(svg)
+    } catch {}
+  })
+}
+
+// 地图文本标签
+let textLabels: any[] = []
+function addTextLabel(lnglat: [number, number], text: string, role: 'origin' | 'destination') {
+  if (!AMapRef || !mapInstance) return
+  const color = role === 'origin' ? '#10b981' : '#ef4444'
+  const label = new (AMapRef as any).Text({
+    text,
+    position: lnglat,
+    style: {
+      'background-color': '#ffffff',
+      'border': `2px solid ${color}`,
+      'border-radius': '8px',
+      'padding': '4px 8px',
+      'color': '#111827',
+      'font-weight': '700'
+    },
+    offset: new (AMapRef as any).Pixel(0, -30)
+  })
+  try { (mapInstance as any).add(label); textLabels.push(label) } catch {}
+}
+function cleanupTextLabels() {
+  if (!mapInstance || !textLabels.length) return
+  try { (mapInstance as any).remove(textLabels) } catch {}
+  textLabels = []
+}
+
 // Format helpers
 function formatDistance(meters: number) {
   if (!meters || isNaN(meters)) return '-'
@@ -851,14 +1126,15 @@ function formatDuration(seconds: number) {
   overflow-y: auto;
   overflow-x: hidden;
   z-index: 10;
-  max-height: calc(100vh - 140px);
+  max-height: calc(100vh - 60px);
   border: 2px solid rgba(147, 197, 253, 0.3);
 }
 
 .gdmap__panel--left {
-  left: 20px;
-  top: 20px;
-  width: 360px;
+  /* left/top 由内联 style 控制用于拖拽定位 */
+  width: auto;
+  min-width: 360px;
+  max-width: 560px;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -908,8 +1184,8 @@ function formatDuration(seconds: number) {
 .route-info-card {
   position: absolute;
   top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 20px;
+  transform: none;
   z-index: 15;
   background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);
   backdrop-filter: blur(20px);
@@ -919,6 +1195,8 @@ function formatDuration(seconds: number) {
   box-shadow: 0 8px 32px rgba(59, 130, 246, 0.2), 0 0 0 1px rgba(147, 197, 253, 0.3);
   border: 2px solid rgba(147, 197, 253, 0.5);
   animation: slideDown 0.4s ease;
+  user-select: none;
+  cursor: grab;
 }
 
 @keyframes slideDown {
@@ -972,6 +1250,21 @@ function formatDuration(seconds: number) {
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
+
+.route-info-actions {
+  margin-top: 14px;
+}
+
+.route-endpoints {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.route-endpoints .ep { display: flex; align-items: center; gap: 8px; font-weight: 600; color: #0c4a6e; }
+.route-endpoints .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.route-endpoints .dot--origin { background: #10b981; }
+.route-endpoints .dot--dest { background: #ef4444; }
 
 .route-info-item {
   background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
@@ -1030,10 +1323,26 @@ function formatDuration(seconds: number) {
 .panel__header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid #f3f4f6;
+  align-items: center;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid #440bbe;
+}
+
+.panel__header h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #e90e28;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel__right {
+  display: flex;
+  align-items: center;
+  gap: 50px;
 }
 
 .panel__title {
@@ -1047,9 +1356,8 @@ function formatDuration(seconds: number) {
   margin: 0;
   font-size: 20px;
   font-weight: 700;
-  background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #1fc1dd 100%);
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   background-clip: text;
   letter-spacing: -0.3px;
 }
@@ -1104,7 +1412,6 @@ function formatDuration(seconds: number) {
 
 .panel__section {
   border-top: 1px solid #f3f4f6;
-  padding-top: 16px;
 }
 
 .section-title {
@@ -1240,6 +1547,27 @@ function formatDuration(seconds: number) {
   color: #111827;
 }
 
+/* 折叠后的浮动按钮 */
+.panel-fab {
+  position: absolute;
+  left: 20px;
+  top: 20px;
+  z-index: 12;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid #93c5fd;
+  background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2563eb;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.25);
+  cursor: pointer;
+  transition: transform .2s, box-shadow .2s;
+}
+.panel-fab:hover { transform: scale(1.05); box-shadow: 0 8px 28px rgba(59,130,246,.35); }
+
 /* Marker List */
 .marker-list {
   list-style: none;
@@ -1248,7 +1576,7 @@ function formatDuration(seconds: number) {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 300px;
+  max-height: clamp(240px, 42vh, 460px);
   overflow-y: auto;
 }
 
@@ -1293,6 +1621,9 @@ function formatDuration(seconds: number) {
   letter-spacing: -0.2px;
   display: block;
   margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .marker-meta .coord {
@@ -1303,10 +1634,15 @@ function formatDuration(seconds: number) {
 }
 
 .marker-meta .marker-addr {
-  font-size: 14px;
-  color: #0284c7;
-  line-height: 1.4;
+  font-size: 12px;
+  color: #0c4a6e;
+  line-height: 1.5;
   font-weight: 500;
+  display: -webkit-box;
+  line-clamp: 2;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .marker-actions {
@@ -1413,16 +1749,18 @@ function formatDuration(seconds: number) {
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  width: 90%;
-  max-width: 600px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-  z-index: 10;
-  max-height: 300px;
+  width: 92%;
+  max-width: 680px;
+  background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);
+  border: 2px solid rgba(147, 197, 253, 0.5);
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(59, 130, 246, 0.15), 0 0 0 1px rgba(59, 130, 246, 0.1);
+  z-index: 12;
+  max-height: 360px;
   display: flex;
   flex-direction: column;
   animation: slideInUp 0.3s ease;
+  overflow: hidden;
 }
 
 @keyframes slideInUp {
@@ -1441,7 +1779,7 @@ function formatDuration(seconds: number) {
   justify-content: space-between;
   align-items: center;
   padding: 14px 16px;
-  border-bottom: 2px solid #f3f4f6;
+  border-bottom: 2px solid #e5effe;
 }
 
 .steps-header h3 {
@@ -1463,7 +1801,7 @@ function formatDuration(seconds: number) {
   padding: 0;
   margin: 0;
   overflow-y: auto;
-  max-height: 240px;
+  max-height: 280px;
 }
 
 .step-item {
@@ -1471,7 +1809,7 @@ function formatDuration(seconds: number) {
   align-items: flex-start;
   gap: 12px;
   padding: 12px 16px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #e5effe;
   transition: background 0.2s;
 }
 
@@ -1487,7 +1825,7 @@ function formatDuration(seconds: number) {
   flex-shrink: 0;
   width: 28px;
   height: 28px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
   color: white;
   border-radius: 50%;
   display: flex;
@@ -1500,9 +1838,16 @@ function formatDuration(seconds: number) {
 .step-text {
   flex: 1;
   font-size: 14px;
-  color: #111827;
+  color: #0c4a6e;
   line-height: 1.5;
   font-weight: 500;
+}
+
+/* Small button variant used in lists */
+.btn--sm {
+  padding: 6px 10px;
+  font-size: 13px;
+  border-radius: 8px;
 }
 
 /* Info Panel */
@@ -1671,7 +2016,7 @@ function formatDuration(seconds: number) {
 /* Responsive */
 @media (max-width: 768px) {
   .gdmap__panel--left {
-    width: 280px;
+    width: 300px;
     left: 10px;
     top: 10px;
   }
