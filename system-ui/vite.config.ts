@@ -16,6 +16,11 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       proxy: {
+        // Backend API proxy
+        '/api': {
+          target: 'http://localhost:8080',
+          changeOrigin: true,
+        },
         // Map styles (optional; if you use custom styles)
         '/_AMapService/v4/map/styles': {
           target: 'https://webapi.amap.com',

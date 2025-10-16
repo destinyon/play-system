@@ -94,7 +94,7 @@ const getIcon = (type: string) => getTypeInfo(type)!.icon
         </h2>
         <div class="quick-start-card">
           <div class="quick-start-content">
-            <p class="quick-start-text">前往 <strong>地图导航</strong> 页面，添加起点和终点标记，即可开始规划路线</p>
+            <p class="quick-start-text">在“附近餐厅”首页选择任意餐厅作为起点或终点，即可开始规划路线</p>
             <router-link to="/map" class="start-button">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>

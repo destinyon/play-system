@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.DeliverymanMapper">
+
+  <insert id="insert" parameterType="com.example.entity.Deliveryman" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO `deliveryman` (income, user_id)
+    VALUES (#{income}, #{user.id})
+  </insert>
+
+  <delete id="deleteByUserId" parameterType="int">
+    DELETE FROM `deliveryman` WHERE user_id = #{userId}
+  </delete>
+
+</mapper>

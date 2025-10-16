@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserMapper">
+
+  <resultMap id="UserResult" type="com.example.entity.User">
+    <id property="id" column="id" />
+    <result property="username" column="username" />
+    <result property="password" column="password" />
+    <result property="nickname" column="nickname" />
+    <result property="role" column="role" javaType="com.example.entity.UserRole" />
+    <result property="address" column="address" />
+    <result property="email" column="email" />
+    <result property="phone" column="phone" />
+    <result property="avatarUrl" column="avatar_url" />
+  </resultMap>
+
+  <select id="getById" resultMap="UserResult" parameterType="int">
+    SELECT *
+    FROM `user`
+    WHERE id = #{id}
+  </select>
+
+  <select id="getByUsername" resultMap="UserResult" parameterType="string">
+    SELECT *
+    FROM `user`
+    WHERE username = #{username}
+  </select>
+
+  <select id="getAllUsers" resultMap="UserResult">
+    SELECT *
+    FROM `user`
+  </select>
+
+  <select id="getByUsernameAndPassword" resultMap="UserResult" parameterType="map">
+    SELECT *
+    FROM `user`
+    WHERE username = #{username} AND password = #{password}
+  </select>
+
+  <insert id="insertUser" parameterType="com.example.entity.User" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO `user` (username, password, nickname, role, address, email, phone, avatar_url)
+    VALUES (#{username}, #{password}, #{nickname}, #{role,jdbcType=VARCHAR}, #{address}, #{email}, #{phone}, #{avatarUrl})
+  </insert>
+
+  <delete id="deleteById" parameterType="int">
+    DELETE FROM `user` WHERE id = #{id}
+  </delete>
+
+  <update id="update" parameterType="com.example.entity.User">
+    UPDATE `user` SET
+      nickname = #{nickname},
+      email = #{email},
+      phone = #{phone},
+      address = #{address},
+      avatar_url = #{avatarUrl},
+      password = #{password}
+    WHERE id = #{id}
+  </update>
+
+  <select id="countByRole" resultType="int">
+    SELECT COUNT(*) FROM `user` WHERE role = #{role}
+  </select>
+
+</mapper>

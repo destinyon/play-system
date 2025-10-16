@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.RestaurantMapper">
+
+  <insert id="insert" parameterType="com.example.entity.Restaurant" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO `restaurant` (restaurant_name, restaurant_address, restaurant_image_url, lng, lat, restaurateur_id)
+    VALUES (#{restaurantName}, #{restaurantAddress}, #{restaurantImageUrl}, #{lng}, #{lat}, #{restaurateur.id})
+  </insert>
+
+  <delete id="deleteByRestaurateurId" parameterType="int">
+    DELETE FROM `restaurant` WHERE restaurateur_id = #{restaurateurId}
+  </delete>
+
+  <select id="listAll" resultType="com.example.entity.Restaurant">
+    SELECT id, restaurant_name, restaurant_address, restaurant_image_url, lng, lat, restaurateur_id
+    FROM `restaurant`
+  </select>
+
+  <select id="getByRestaurateurId" parameterType="int" resultType="com.example.entity.Restaurant">
+    SELECT id, restaurant_name, restaurant_address, restaurant_image_url, lng, lat, restaurateur_id
+    FROM `restaurant`
+    WHERE restaurateur_id = #{restaurateurId}
+    LIMIT 1
+  </select>
+
+  <update id="updateById" parameterType="com.example.entity.Restaurant">
+    UPDATE `restaurant`
+    <set>
+      <if test="restaurantName != null">restaurant_name = #{restaurantName},</if>
+      <if test="restaurantAddress != null">restaurant_address = #{restaurantAddress},</if>
+      <if test="restaurantImageUrl != null">restaurant_image_url = #{restaurantImageUrl},</if>
+      <if test="lng != null">lng = #{lng},</if>
+      <if test="lat != null">lat = #{lat},</if>
+      <if test="restaurateur != null and restaurateur.id != null">restaurateur_id = #{restaurateur.id},</if>
+    </set>
+    WHERE id = #{id}
+  </update>
+
+</mapper>

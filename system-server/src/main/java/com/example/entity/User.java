@@ -26,11 +26,11 @@ public class User {
     private String nickname;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 20)
     private UserRole role;
 
     private String address;
 
-    @Column(nullable = false)
     @Email(message = "邮箱格式不正确")
     private String email;
 

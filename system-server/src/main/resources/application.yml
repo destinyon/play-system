@@ -8,8 +8,16 @@ spring:
     password: 123456
   jpa:
     hibernate:
-      ddl-auto: update # 在开发环境可以使用 update 或 create-drop，生产环境请谨慎
+      # ddl-auto: create-drop # 在开发环境可以使用 update 或 create-drop，生产环境请谨慎
+      ddl-auto: update
     show-sql: false
     properties:
       hibernate:
         format_sql: true
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+mybatis:
+  mapper-locations: classpath*:xml/*.xml
+  type-aliases-package: com.example.entity

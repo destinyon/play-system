@@ -257,10 +257,9 @@ type AMapSDK = {
 
 declare global {
   interface Window {
-    AMap?: AMapSDK
+    AMap?: any
     _AMapSecurityConfig?: {
       securityJsCode?: string
-      serviceHost?: string
     }
   }
 }
@@ -567,6 +566,14 @@ onMounted(async () => {
   } catch (err) {
     error.value = (err as Error).message
   }
+  // Listen to external merchant markers
+  window.addEventListener('merchant-markers', (e: any) => {
+    const list = e?.detail || []
+    list.forEach((r: any) => {
+      // Add merchant marker with blue color
+      addMerchantMarker([r.lng, r.lat], r.name, r.address, r)
+    })
+  })
 })
 
 onBeforeUnmount(() => {
@@ -621,6 +628,25 @@ function addMarker(lnglat: [number, number], name?: string, address?: string) {
     mapInstance.add(overlay)
   } catch {}
   markers.value.push({ id, name: displayName, lnglat, overlay, address })
+}
+
+// Merchant marker with click prompt
+function addMerchantMarker(lnglat: [number, number], name?: string, address?: string, data?: any) {
+  if (!mapInstance || !AMapRef) return
+  const id = `merchant_${lnglat[0]}_${lnglat[1]}_${Date.now()}`
+  let overlay: any
+  try {
+    const svg = markerIcon('#4f46e5')
+    overlay = new AMapRef.Marker({ position: lnglat, title: name || '商家', icon: svg as any, extData: { id, name, address, merchant: true, raw: data } })
+    overlay.on('click', () => {
+      const ok = confirm(`是否进入 “${name||'商家'}” 点单？`)
+      if (ok) {
+        // Navigate via hash to owner's dishes or a shop page (placeholder):
+        window.dispatchEvent(new CustomEvent('open-merchant', { detail: data }))
+      }
+    })
+    ;(mapInstance as any).add(overlay)
+  } catch {}
 }
 
 function clearMarkers() {

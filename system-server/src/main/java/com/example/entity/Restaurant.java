@@ -19,6 +19,12 @@ public class Restaurant {
     
     private String restaurantImageUrl;
 
+    @Column(name = "lng")
+    private Double lng;
+
+    @Column(name = "lat")
+    private Double lat;
+
     @OneToOne
     @JoinColumn(name = "restaurateur_id", nullable = false, unique = true)
     private Restaurateur restaurateur;

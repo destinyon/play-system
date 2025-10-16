@@ -137,7 +137,7 @@ function goToMap() {
             <div class="step-number">1</div>
             <div class="step-content">
               <h3>进入地图</h3>
-              <p>点击左侧导航栏的"地图导航"进入地图界面</p>
+              <p>从左侧导航栏进入“首页”，即可访问地图与餐厅标记</p>
             </div>
           </div>
           <div class="step-arrow">↓</div>
