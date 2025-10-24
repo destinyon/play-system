@@ -24,9 +24,18 @@ export function apiGetByUsername(username: string) {
   return postDataRequest('/api/user/getByUsername', { username })
 }
 
-// 获取当前用户信息
-export const getUserInfo = () => {
-  return postDataRequest('/api/user/getByUsername', {})
+// 获取当前或指定用户信息
+export const getUserInfo = (username?: string) => {
+  const payload = username ? { username } : {}
+  return postDataRequest('/api/user/getByUsername', payload)
+}
+
+// 对外展示的用户资料
+export const getUserPublicProfile = (payload: { username?: string; userId?: number | string }) => {
+  if (payload.userId != null && payload.userId !== '') {
+    return postDataRequest('/api/user/getById', { id: payload.userId } as Record<string, any>)
+  }
+  return postDataRequest('/api/user/getByUsername', payload as Record<string, any>)
 }
 
 // 获取所有用户（管理员）

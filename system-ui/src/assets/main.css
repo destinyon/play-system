@@ -6,18 +6,62 @@
   margin: 0;
   padding: 0;
   font-weight: normal;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #fde68a 100%);
 }
 
 a,
 .green {
   text-decoration: none;
-  color: hsla(160, 100%, 37%, 1);
+  color: #d97706;
   transition: 0.4s;
   padding: 3px;
 }
 
 @media (hover: hover) {
   a:hover {
-    background-color: hsla(160, 100%, 37%, 0.2);
+    background-color: rgba(251, 191, 36, 0.3);
   }
+}
+
+/* 淡黄色主题色板 */
+:root {
+  --primary-color: #fbbf24;
+  --primary-light: #fde68a;
+  --primary-lighter: #fef3c7;
+  --primary-lightest: #fffbeb;
+  --primary-dark: #f59e0b;
+  --primary-darker: #d97706;
+  --accent-color: #fb923c;
+  --text-primary: #78350f;
+  --text-secondary: #92400e;
+  --border-color: #fde68a;
+  --shadow-color: rgba(251, 191, 36, 0.2);
+}
+
+/* 全局滚动条样式（淡黄色主题） */
+html, body {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: var(--primary-dark) var(--primary-lighter);
+}
+
+/* WebKit 浏览器 */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: var(--primary-lighter);
+}
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--primary-color), var(--primary-dark));
+  border-radius: 8px;
+  border: 2px solid var(--primary-lighter);
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--primary-dark), var(--primary-darker));
+}
+
+/* 平滑滚动的工具类 */
+.scroll-smooth {
+  scroll-behavior: smooth;
 }

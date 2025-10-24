@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.RestaurantReviewLikeMapper">
+
+  <resultMap id="LikeResult" type="com.example.entity.RestaurantReviewLike">
+    <id property="id" column="id" />
+    <result property="reviewId" column="review_id" />
+    <result property="userId" column="user_id" />
+    <result property="createdAt" column="created_at" />
+  </resultMap>
+
+  <select id="findByReviewAndUser" resultMap="LikeResult">
+    SELECT id, review_id, user_id, created_at
+    FROM restaurant_review_like
+    WHERE review_id = #{reviewId}
+      AND user_id = #{userId}
+    LIMIT 1
+  </select>
+
+  <insert id="insert" parameterType="com.example.entity.RestaurantReviewLike" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO restaurant_review_like (review_id, user_id, created_at)
+    VALUES (#{reviewId}, #{userId}, #{createdAt})
+  </insert>
+
+  <delete id="deleteById" parameterType="int">
+    DELETE FROM restaurant_review_like WHERE id = #{id}
+  </delete>
+
+  <delete id="deleteByReviewAndUser">
+    DELETE FROM restaurant_review_like
+    WHERE review_id = #{reviewId}
+      AND user_id = #{userId}
+  </delete>
+
+  <select id="countByReview" resultType="int">
+    SELECT COUNT(1)
+    FROM restaurant_review_like
+    WHERE review_id = #{reviewId}
+  </select>
+
+  <select id="findLikedReviewIds" resultType="int">
+    SELECT review_id
+    FROM restaurant_review_like
+    WHERE user_id = #{userId}
+      <if test="reviewIds != null and reviewIds.size() > 0">
+        AND review_id IN
+        <foreach item="id" collection="reviewIds" open="(" separator="," close=")">
+          #{id}
+        </foreach>
+      </if>
+  </select>
+
+</mapper>

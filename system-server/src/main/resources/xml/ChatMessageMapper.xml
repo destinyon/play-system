@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.ChatMessageMapper">
+
+  <resultMap id="ChatMessageResult" type="com.example.entity.ChatMessage">
+    <id property="id" column="id" />
+    <result property="sessionId" column="session_id" />
+    <result property="orderId" column="order_id" />
+    <result property="contextType" column="context_type" />
+    <result property="contextRef" column="context_ref" />
+    <result property="senderId" column="sender_id" />
+    <result property="senderRole" column="sender_role" />
+    <result property="receiverId" column="receiver_id" />
+    <result property="receiverRole" column="receiver_role" />
+    <result property="content" column="content" />
+    <result property="readFlag" column="read_flag" />
+    <result property="createdAt" column="created_at" />
+  </resultMap>
+
+  <insert id="insert" parameterType="com.example.entity.ChatMessage" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO chat_message
+      (session_id, order_id, context_type, context_ref, sender_id, sender_role, receiver_id, receiver_role, content, read_flag, created_at)
+    VALUES
+      (#{sessionId}, #{orderId}, #{contextType}, #{contextRef}, #{senderId}, #{senderRole}, #{receiverId}, #{receiverRole}, #{content}, #{readFlag}, #{createdAt})
+  </insert>
+
+  <select id="selectLatest" resultMap="ChatMessageResult">
+    SELECT *
+    FROM chat_message
+    WHERE session_id = #{sessionId}
+    ORDER BY id DESC
+    LIMIT 1
+  </select>
+
+  <select id="countUnread" resultType="int">
+    SELECT COUNT(1)
+    FROM chat_message
+    WHERE session_id = #{sessionId}
+      AND receiver_role = #{receiverRole}
+      AND receiver_id = #{receiverId}
+      AND COALESCE(read_flag, 0) = 0
+  </select>
+
+  <select id="listBySession" resultMap="ChatMessageResult">
+    SELECT *
+    FROM chat_message
+    WHERE session_id = #{sessionId}
+      <if test="beforeId != null">
+        AND id &lt; #{beforeId}
+      </if>
+    ORDER BY id DESC
+    LIMIT #{limit}
+  </select>
+
+  <update id="markRead">
+    UPDATE chat_message
+    SET read_flag = 1
+    WHERE session_id = #{sessionId}
+      AND receiver_role = #{receiverRole}
+      AND receiver_id = #{receiverId}
+      AND COALESCE(read_flag, 0) = 0
+  </update>
+
+</mapper>

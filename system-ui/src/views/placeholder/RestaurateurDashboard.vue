@@ -99,10 +99,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { getRestaurateurStats } from '@/api/user'
+import { ref, reactive, onMounted, computed } from 'vue'
+import { useAuthStore } from '@/stores/auth'
 import { listRestaurants } from '@/api/restaurant'
+import { getRestaurateurMetrics, getRestaurateurStats } from '@/api/order'
+import { getPendingOrders } from '@/api/order'
 import Chart from 'chart.js/auto'
+
+const auth = useAuthStore()
+// 从登录信息提取 restaurateurId，缺失时回退为 1（开发期）
+const restaurateurId = computed(() => {
+  const id = (auth.restaurant as any)?.id
+  const n = typeof id === 'string' ? parseInt(id, 10) : id
+  const num = typeof n === 'number' ? n : Number(n)
+  return Number.isFinite(num) ? num : 1
+})
 
 const incomeChart = ref<HTMLCanvasElement | null>(null)
 const ordersChart = ref<HTMLCanvasElement | null>(null)
@@ -112,30 +123,34 @@ const stats = reactive({
   pendingOrders: 0,
   todayOrders: 0,
   todayOrdersGrowth: 0,
-  dishCount: 0
+  dishCount: 28
 })
 
 const restaurant = ref<any>(null)
+const metricsData = ref<any>(null)
 
 const loadStats = async () => {
   try {
-    const res = await getRestaurateurStats()
-    if (res.data) {
-      Object.assign(stats, res.data)
-    } else {
-      stats.totalIncome = 18500
-      stats.pendingOrders = 5
-      stats.todayOrders = 23
-      stats.todayOrdersGrowth = 15
-      stats.dishCount = 28
+    // 获取基础统计数据
+    const statsRes = await getRestaurateurStats(restaurateurId.value)
+    if (statsRes.status === 200 && statsRes.data) {
+      stats.totalIncome = statsRes.data.totalIncome || 0
+      stats.pendingOrders = statsRes.data.pendingOrders || 0
+      stats.todayOrders = statsRes.data.todayOrders || 0
+      stats.todayOrdersGrowth = statsRes.data.todayOrdersGrowth || 0
+      stats.dishCount = statsRes.data.dishCount || 0
+    }
+
+    // 获取过去7天的数据用于图表
+    const to = new Date().toISOString().split('T')[0]
+    const from = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    const metricsRes = await getRestaurateurMetrics(from, to, 'day')
+    
+    if (metricsRes.status === 200 && metricsRes.data) {
+      metricsData.value = metricsRes.data
     }
   } catch (error) {
     console.error('Failed to load stats:', error)
-    stats.totalIncome = 18500
-    stats.pendingOrders = 5
-    stats.todayOrders = 23
-    stats.todayOrdersGrowth = 15
-    stats.dishCount = 28
   }
 }
 
@@ -151,18 +166,28 @@ const loadRestaurant = async () => {
 }
 
 const initCharts = () => {
-  if (incomeChart.value) {
+  if (incomeChart.value && metricsData.value) {
+    const timeSeries = metricsData.value.timeSeries || []
+    const labels = timeSeries.map((item: any) => {
+      const date = new Date(item.date)
+      return `${date.getMonth() + 1}/${date.getDate()}`
+    })
+    const incomeData = timeSeries.map((item: any) => item.income || 0)
+
     new Chart(incomeChart.value, {
       type: 'line',
       data: {
-        labels: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+        labels,
         datasets: [{
           label: '每日收入 (¥)',
-          data: [2100, 2400, 2800, 2200, 3100, 3500, 2900],
-          borderColor: '#667eea',
-          backgroundColor: 'rgba(102, 126, 234, 0.1)',
+          data: incomeData,
+          borderColor: '#fbbf24',
+          backgroundColor: 'rgba(251, 191, 36, 0.15)',
           tension: 0.4,
-          fill: true
+          fill: true,
+          pointBackgroundColor: '#f59e0b',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2
         }]
       },
       options: {
@@ -184,8 +209,10 @@ const initCharts = () => {
       data: {
         labels: ['已完成', '配送中', '待处理', '已取消'],
         datasets: [{
-          data: [145, 28, 5, 12],
-          backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444']
+          data: [145, 28, stats.pendingOrders || 5, 12],
+          backgroundColor: ['#fbbf24', '#fb923c', '#fde047', '#fca5a5'],
+          borderWidth: 2,
+          borderColor: '#fff'
         }]
       },
       options: {
@@ -200,9 +227,10 @@ const initCharts = () => {
 }
 
 onMounted(() => {
-  loadStats()
+  loadStats().then(() => {
+    setTimeout(initCharts, 100)
+  })
   loadRestaurant()
-  setTimeout(initCharts, 100)
 })
 </script>
 
@@ -210,7 +238,7 @@ onMounted(() => {
 .dashboard-page {
   padding: 24px;
   height: 100%;
-  background: #f5f7fa;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #fde68a 100%);
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -222,13 +250,13 @@ onMounted(() => {
 .dashboard-header h1 {
   font-size: 32px;
   font-weight: 700;
-  color: #111827;
+  color: #78350f;
   margin: 0 0 8px 0;
 }
 
 .subtitle {
   font-size: 16px;
-  color: #6b7280;
+  color: #92400e;
   margin: 0;
 }
 
@@ -240,19 +268,21 @@ onMounted(() => {
 }
 
 .stat-card {
-  background: white;
+  background: rgba(255, 255, 255, 0.95);
   border-radius: 16px;
   padding: 24px;
   display: flex;
   align-items: center;
   gap: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px rgba(251, 191, 36, 0.15);
+  border: 1px solid rgba(251, 191, 36, 0.2);
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .stat-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 16px rgba(251, 191, 36, 0.25);
+  border-color: rgba(251, 191, 36, 0.4);
 }
 
 .stat-icon {
@@ -270,7 +300,7 @@ onMounted(() => {
 
 .stat-label {
   font-size: 14px;
-  color: #6b7280;
+  color: #92400e;
   font-weight: 500;
   margin-bottom: 8px;
 }
@@ -278,18 +308,18 @@ onMounted(() => {
 .stat-value {
   font-size: 28px;
   font-weight: 700;
-  color: #111827;
+  color: #78350f;
   line-height: 1;
   margin-bottom: 8px;
 }
 
 .stat-change {
   font-size: 13px;
-  color: #6b7280;
+  color: #92400e;
 }
 
 .stat-change.positive {
-  color: #10b981;
+  color: #f59e0b;
   font-weight: 600;
 }
 
@@ -301,16 +331,17 @@ onMounted(() => {
 }
 
 .chart-card {
-  background: white;
+  background: rgba(255, 255, 255, 0.95);
   border-radius: 16px;
   padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px rgba(251, 191, 36, 0.15);
+  border: 1px solid rgba(251, 191, 36, 0.2);
 }
 
 .chart-title {
   font-size: 18px;
   font-weight: 700;
-  color: #111827;
+  color: #78350f;
   margin: 0 0 20px 0;
 }
 
@@ -320,16 +351,17 @@ onMounted(() => {
 }
 
 .info-card {
-  background: white;
+  background: rgba(255, 255, 255, 0.95);
   border-radius: 16px;
   padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px rgba(251, 191, 36, 0.15);
+  border: 1px solid rgba(251, 191, 36, 0.2);
 }
 
 .card-title {
   font-size: 20px;
   font-weight: 700;
-  color: #111827;
+  color: #78350f;
   margin: 0 0 20px 0;
 }
 
@@ -350,13 +382,13 @@ onMounted(() => {
 .restaurant-details h3 {
   font-size: 24px;
   font-weight: 700;
-  color: #111827;
+  color: #78350f;
   margin: 0 0 16px 0;
 }
 
 .restaurant-details p {
   font-size: 15px;
-  color: #6b7280;
+  color: #92400e;
   margin: 8px 0;
 }
 
@@ -370,16 +402,18 @@ onMounted(() => {
   display: inline-block;
   margin-top: 16px;
   padding: 10px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
   color: white;
   text-decoration: none;
   border-radius: 8px;
   font-weight: 600;
-  transition: transform 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 4px rgba(251, 191, 36, 0.3);
 }
 
 .btn-link:hover {
   transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(251, 191, 36, 0.4);
 }
 
 @media (max-width: 768px) {

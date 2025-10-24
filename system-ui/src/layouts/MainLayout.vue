@@ -12,10 +12,10 @@
         </button>
         <div class="app-logo">
           <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-            <circle cx="16" cy="16" r="14" fill="#3b82f6" opacity="0.2"/>
-            <path d="M16 8L18.5 13L24 14L20 18L21 24L16 21L11 24L12 18L8 14L13.5 13L16 8Z" fill="#3b82f6"/>
+            <circle cx="16" cy="16" r="14" fill="#fdba74" opacity="0.35" />
+            <path d="M16 7l2.8 5.9 6.3.9-4.5 4.3 1.1 6.3L16 20.9l-5.7 3.5 1.1-6.3-4.5-4.3 6.3-.9L16 7z" fill="#f97316" />
           </svg>
-          <h1 class="app-title">高德导航系统</h1>
+          <h1 class="app-title">外卖系统</h1>
         </div>
 
         <!-- Avatar & Nickname on the left -->
@@ -151,6 +151,19 @@
           
           <div class="nav-divider"></div>
           
+          <!-- AI助手 - 所有角色可用 -->
+          <router-link to="/app/ai-chat" class="nav-item" active-class="active">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              <circle cx="9" cy="10" r="1" fill="currentColor"></circle>
+              <circle cx="12" cy="10" r="1" fill="currentColor"></circle>
+              <circle cx="15" cy="10" r="1" fill="currentColor"></circle>
+            </svg>
+            <span class="nav-text">问问AI</span>
+          </router-link>
+          
+          <div class="nav-divider"></div>
+          
           <router-link to="/app/settings" class="nav-item" active-class="active">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="3"></circle>
@@ -232,8 +245,8 @@ function logout() {
 /* App Bar */
 .app-bar {
   height: 60px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: linear-gradient(135deg, #fff7ed 0%, #fde68a 45%, #f97316 100%);
+  color: #7c2d12;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -251,7 +264,7 @@ function logout() {
 .menu-toggle {
   background: transparent;
   border: none;
-  color: white;
+  color: inherit;
   cursor: pointer;
   padding: 8px;
   border-radius: 6px;
@@ -262,7 +275,7 @@ function logout() {
 }
 
 .menu-toggle:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.4);
 }
 
 .app-logo {
@@ -287,7 +300,7 @@ function logout() {
 .icon-btn {
   background: transparent;
   border: none;
-  color: white;
+  color: inherit;
   cursor: pointer;
   padding: 10px;
   border-radius: 6px;
@@ -298,18 +311,18 @@ function logout() {
 }
 
 .icon-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .user-menu { position: relative; }
-.avatar-btn { display:flex; align-items:center; gap:8px; background:transparent; border:none; color:white; cursor:pointer; padding:6px 8px; border-radius:8px; }
-.avatar-btn:hover { background: rgba(255,255,255,.15); }
-.avatar-btn img { width:28px; height:28px; border-radius:50%; object-fit:cover; border:2px solid rgba(255,255,255,.5); }
-.avatar-fallback { width:28px; height:28px; border-radius:50%; background:#fff; color:#4f46e5; display:grid; place-items:center; font-weight:800; }
-.nickname { font-weight:700; }
+.avatar-btn { display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.35); border:none; color:#7c2d12; cursor:pointer; padding:6px 10px; border-radius:999px; transition: background 0.2s, box-shadow 0.2s; }
+.avatar-btn:hover { background:rgba(255,255,255,0.6); box-shadow:0 8px 18px rgba(124,45,18,0.18); }
+.avatar-btn img { width:28px; height:28px; border-radius:50%; object-fit:cover; border:2px solid rgba(249,115,22,0.45); }
+.avatar-fallback { width:28px; height:28px; border-radius:50%; background:#fed7aa; color:#b45309; display:grid; place-items:center; font-weight:800; }
+.nickname { font-weight:700; color:inherit; }
 .menu { position:absolute; right:0; top:40px; background:#fff; color:#111827; border:1px solid #e5e7eb; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,.1); min-width:160px; overflow:hidden; z-index:200; }
-.menu-item { display:block; width:100%; text-align:left; padding:10px 12px; border:none; background:#fff; color:#111827; text-decoration:none; font-weight:600; cursor:pointer; }
-.menu-item:hover { background:#f3f4f6; }
+.menu-item { display:block; width:100%; text-align:left; padding:10px 12px; border:none; background:#fff; color:#7c2d12; text-decoration:none; font-weight:600; cursor:pointer; }
+.menu-item:hover { background:#fff7ed; }
 .menu-item.danger { color:#dc2626; }
 
 /* Main Container */
@@ -356,24 +369,25 @@ function logout() {
   gap: 12px;
   padding: 12px 16px;
   margin-bottom: 8px;
-  border-radius: 8px;
-  color: #6b7280;
+  border-radius: 10px;
+  color: #b45309;
   text-decoration: none;
   transition: all 0.2s;
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
   white-space: nowrap;
 }
 
 .nav-item:hover {
-  background: #f3f4f6;
-  color: #3b82f6;
+  background: rgba(252, 211, 77, 0.28);
+  color: #c2410c;
+  box-shadow: 0 6px 16px rgba(249, 115, 22, 0.18);
 }
 
 .nav-item.active {
-  background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
-  color: #667eea;
-  font-weight: 600;
+  background: linear-gradient(135deg, rgba(253, 230, 138, 0.35) 0%, rgba(249, 115, 22, 0.3) 100%);
+  color: #c2410c;
+  box-shadow: 0 8px 18px rgba(249, 115, 22, 0.22);
 }
 
 .nav-text {

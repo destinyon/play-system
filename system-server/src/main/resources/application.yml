@@ -8,12 +8,9 @@ spring:
     password: 123456
   jpa:
     hibernate:
-      # ddl-auto: create-drop # 在开发环境可以使用 update 或 create-drop，生产环境请谨慎
-      ddl-auto: update
+      ddl-auto: update # 避免重复创建唯一约束/外键导致启动报错
+      # ddl-auto: create-drop
     show-sql: false
-    properties:
-      hibernate:
-        format_sql: true
   servlet:
     multipart:
       max-file-size: 20MB
@@ -21,3 +18,10 @@ spring:
 mybatis:
   mapper-locations: classpath*:xml/*.xml
   type-aliases-package: com.example.entity
+
+# DeepSeek AI Configuration
+deepseek:
+  api:
+    key: ${DEEPSEEK_API_KEY:sk-11944b7b61964dcebcb8a16001c2b020}
+    url: ${DEEPSEEK_API_URL:https://api.deepseek.com}
+  model: ${DEEPSEEK_MODEL:deepseek-chat}

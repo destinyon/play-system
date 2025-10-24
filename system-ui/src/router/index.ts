@@ -17,26 +17,28 @@ const router = createRouter({
         { path: 'guest/home', name: 'guest-home', component: () => import('../views/GuestHome.vue') },
         { path: 'guest/cart', name: 'guest-cart', component: () => import('../views/placeholder/GuestCart.vue') },
         { path: 'guest/orders', name: 'guest-orders', component: () => import('../views/placeholder/GuestOrders.vue') },
-        { path: 'guest/chat', name: 'guest-chat', component: () => import('../views/placeholder/Chat.vue') },
+  { path: 'guest/chat', name: 'guest-chat', component: () => import('../views/ChatWorkspace.vue') },
 
         { path: 'chat', redirect: '/app/guest/chat' },
 
         // Shared
         { path: 'profile', name: 'profile', component: () => import('../views/placeholder/Profile.vue') },
+  { path: 'user/:identifier', name: 'user-public-profile', component: () => import('../views/placeholder/UserPublicProfile.vue') },
+        { path: 'ai-chat', name: 'ai-chat', component: () => import('../views/AIChatView.vue') },
 
         // Restaurateur section  
         { path: 'restaurateur/home', name: 'restaurateur-home', component: () => import('../views/RestaurateurHome.vue') },
         { path: 'restaurateur/dashboard', name: 'restaurateur-dashboard', component: () => import('../views/placeholder/RestaurateurDashboard.vue') },
         { path: 'restaurateur/orders', name: 'restaurateur-orders', component: () => import('../views/placeholder/RestaurateurOrders.vue') },
         { path: 'restaurateur/dishes', name: 'restaurateur-dishes', component: () => import('../views/placeholder/RestaurateurDishes.vue') },
-        { path: 'restaurateur/chat', name: 'restaurateur-chat', component: () => import('../views/placeholder/Chat.vue') },
+  { path: 'restaurateur/chat', name: 'restaurateur-chat', component: () => import('../views/ChatWorkspace.vue') },
         { path: 'restaurateur/restaurant', name: 'restaurateur-restaurant', component: () => import('../views/placeholder/RestaurateurRestaurant.vue') },
 
         // Deliveryman section
         { path: 'deliveryman/home', name: 'deliveryman-home', component: () => import('../views/DeliverymanHome.vue') },
         { path: 'deliveryman/dashboard', name: 'deliveryman-dashboard', component: () => import('../views/placeholder/DeliverymanDashboard.vue') },
         { path: 'deliveryman/deliver', name: 'deliveryman-deliver', component: () => import('../views/placeholder/DeliverymanDeliver.vue') },
-        { path: 'deliveryman/chat', name: 'deliveryman-chat', component: () => import('../views/placeholder/Chat.vue') },
+  { path: 'deliveryman/chat', name: 'deliveryman-chat', component: () => import('../views/ChatWorkspace.vue') },
         { path: 'deliveryman/profile', name: 'deliveryman-profile', component: () => import('../views/placeholder/Profile.vue') },
 
         // Backward compatibility for legacy rider paths

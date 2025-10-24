@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.MenuItemMapper">
+
+  <resultMap id="MenuItemResult" type="com.example.entity.MenuItem">
+    <id property="id" column="id" />
+    <result property="restaurateurId" column="restaurateur_id" />
+    <result property="name" column="name" />
+    <result property="category" column="category" />
+    <result property="price" column="price" />
+    <result property="imageUrl" column="image_url" />
+    <result property="description" column="description" />
+    <result property="status" column="status" />
+    <result property="deleted" column="is_deleted" />
+    <result property="createdAt" column="created_at" />
+    <result property="updatedAt" column="updated_at" />
+  </resultMap>
+
+  <insert id="insert" parameterType="com.example.entity.MenuItem" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO menu_item
+      (restaurateur_id, name, category, price, image_url, description, status, is_deleted, created_at, updated_at)
+    VALUES
+      (#{restaurateurId}, #{name}, #{category}, #{price}, #{imageUrl}, #{description}, #{status}, #{deleted}, #{createdAt}, #{updatedAt})
+  </insert>
+
+  <update id="update" parameterType="com.example.entity.MenuItem">
+    UPDATE menu_item
+    SET name = #{name},
+        category = #{category},
+        price = #{price},
+        image_url = #{imageUrl},
+        description = #{description},
+        status = #{status},
+        updated_at = #{updatedAt}
+    WHERE id = #{id}
+      AND restaurateur_id = #{restaurateurId}
+      AND COALESCE(is_deleted, 0) = 0
+  </update>
+
+  <select id="findById" resultMap="MenuItemResult">
+    SELECT *
+    FROM menu_item
+    WHERE id = #{id}
+  </select>
+
+  <select id="pageByRestaurateur" resultMap="MenuItemResult">
+    SELECT *
+    FROM menu_item
+    WHERE restaurateur_id = #{restaurateurId}
+      AND COALESCE(is_deleted, 0) = 0
+      <if test="category != null and category != ''">
+        AND category = #{category}
+      </if>
+      <if test="status != null and status != ''">
+        AND status = #{status}
+      </if>
+      <if test="keyword != null and keyword != ''">
+        AND (
+          name LIKE CONCAT('%', #{keyword}, '%')
+          OR category LIKE CONCAT('%', #{keyword}, '%')
+          OR description LIKE CONCAT('%', #{keyword}, '%')
+        )
+      </if>
+    ORDER BY COALESCE(updated_at, created_at) DESC
+    LIMIT #{limit} OFFSET #{offset}
+  </select>
+
+  <select id="countByRestaurateur" resultType="long">
+    SELECT COUNT(1)
+    FROM menu_item
+    WHERE restaurateur_id = #{restaurateurId}
+      AND COALESCE(is_deleted, 0) = 0
+      <if test="category != null and category != ''">
+        AND category = #{category}
+      </if>
+      <if test="status != null and status != ''">
+        AND status = #{status}
+      </if>
+      <if test="keyword != null and keyword != ''">
+        AND (
+          name LIKE CONCAT('%', #{keyword}, '%')
+          OR category LIKE CONCAT('%', #{keyword}, '%')
+          OR description LIKE CONCAT('%', #{keyword}, '%')
+        )
+      </if>
+  </select>
+
+  <select id="listCategories" resultType="string">
+    SELECT DISTINCT category
+    FROM menu_item
+    WHERE restaurateur_id = #{restaurateurId}
+      AND COALESCE(is_deleted, 0) = 0
+      AND category IS NOT NULL
+      AND category &lt;&gt; ''
+    ORDER BY category
+  </select>
+
+  <update id="softDelete">
+    UPDATE menu_item
+    SET is_deleted = 1,
+        status = 'OFF_SHELF',
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = #{id}
+      AND restaurateur_id = #{restaurateurId}
+  </update>
+
+</mapper>

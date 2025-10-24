@@ -19,6 +19,9 @@ public class Restaurant {
     
     private String restaurantImageUrl;
 
+    @Column(name = "description")
+    private String description;
+
     @Column(name = "lng")
     private Double lng;
 

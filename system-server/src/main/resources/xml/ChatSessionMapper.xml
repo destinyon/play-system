@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.ChatSessionMapper">
+
+  <resultMap id="ChatSessionResult" type="com.example.entity.ChatSession">
+    <id property="id" column="id" />
+    <result property="sessionKey" column="session_key" />
+    <result property="restaurateurId" column="restaurateur_id" />
+    <result property="peerUserId" column="peer_user_id" />
+    <result property="peerRole" column="peer_role" />
+    <result property="orderId" column="order_id" />
+    <result property="contextType" column="context_type" />
+    <result property="contextRef" column="context_ref" />
+    <result property="title" column="title" />
+    <result property="lastMessagePreview" column="last_message_preview" />
+    <result property="lastMessageTime" column="last_message_time" />
+    <result property="createdAt" column="created_at" />
+    <result property="updatedAt" column="updated_at" />
+  </resultMap>
+
+  <insert id="insert" parameterType="com.example.entity.ChatSession" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO chat_session
+      (session_key, restaurateur_id, peer_user_id, peer_role, order_id, context_type, context_ref, title, last_message_preview, last_message_time, created_at, updated_at)
+    VALUES
+      (#{sessionKey}, #{restaurateurId}, #{peerUserId}, #{peerRole}, #{orderId}, #{contextType}, #{contextRef}, #{title}, #{lastMessagePreview}, #{lastMessageTime}, #{createdAt}, #{updatedAt})
+    ON DUPLICATE KEY UPDATE
+      restaurateur_id = VALUES(restaurateur_id),
+      peer_user_id = VALUES(peer_user_id),
+      peer_role = VALUES(peer_role),
+      order_id = VALUES(order_id),
+      context_type = VALUES(context_type),
+      context_ref = VALUES(context_ref),
+      title = VALUES(title),
+      updated_at = VALUES(updated_at)
+  </insert>
+
+  <select id="findByKey" resultMap="ChatSessionResult">
+    SELECT * FROM chat_session WHERE session_key = #{sessionKey} LIMIT 1
+  </select>
+
+  <select id="findById" resultMap="ChatSessionResult">
+    SELECT * FROM chat_session WHERE id = #{id} LIMIT 1
+  </select>
+
+  <select id="listByRestaurateur" resultMap="ChatSessionResult">
+    SELECT *
+    FROM chat_session
+    WHERE restaurateur_id = #{restaurateurId}
+    ORDER BY COALESCE(last_message_time, created_at) DESC
+  </select>
+
+  <select id="listByPeer" resultMap="ChatSessionResult">
+    SELECT *
+    FROM chat_session
+    WHERE peer_user_id = #{peerUserId}
+      AND peer_role = #{peerRole}
+    ORDER BY COALESCE(last_message_time, created_at) DESC
+  </select>
+
+  <update id="updateLastMessage">
+    UPDATE chat_session
+    SET last_message_preview = #{preview},
+        last_message_time = #{time},
+        updated_at = #{time}
+    WHERE id = #{sessionId}
+  </update>
+
+  <update id="updateTitle">
+    UPDATE chat_session
+    SET title = #{title},
+        context_type = #{contextType},
+        context_ref = #{contextRef},
+        order_id = #{orderId},
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = #{sessionId}
+  </update>
+
+</mapper>

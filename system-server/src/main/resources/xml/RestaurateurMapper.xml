@@ -15,8 +15,28 @@
     WHERE user_id = #{userId}
   </select>
 
+  <select id="getById" parameterType="int" resultType="com.example.entity.Restaurateur">
+    SELECT id, income, user_id
+    FROM `restaurateur`
+    WHERE id = #{id}
+    LIMIT 1
+  </select>
+
   <delete id="deleteByUserId" parameterType="int">
     DELETE FROM `restaurateur` WHERE user_id = #{userId}
   </delete>
+
+  <update id="increaseIncome">
+    UPDATE `restaurateur`
+    SET income = COALESCE(income, 0) + #{amount}
+    WHERE id = #{id}
+  </update>
+
+  <select id="getUserIdByRestaurateurId" parameterType="int" resultType="int">
+    SELECT user_id
+    FROM `restaurateur`
+    WHERE id = #{id}
+    LIMIT 1
+  </select>
 
 </mapper>

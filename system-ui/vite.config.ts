@@ -14,12 +14,20 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
     },
+    define: {
+      global: 'globalThis',
+    },
     server: {
       proxy: {
         // Backend API proxy
         '/api': {
           target: 'http://localhost:8080',
           changeOrigin: true,
+        },
+        '/ws': {
+          target: 'http://localhost:8080',
+          changeOrigin: true,
+          ws: true,
         },
         // Map styles (optional; if you use custom styles)
         '/_AMapService/v4/map/styles': {

@@ -793,7 +793,6 @@ onBeforeUnmount(() => {
   border-radius: 16px;
   padding: 24px;
   text-decoration: none;
-  color: inherit;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   transition: transform 0.2s, box-shadow 0.2s;
   display: flex;

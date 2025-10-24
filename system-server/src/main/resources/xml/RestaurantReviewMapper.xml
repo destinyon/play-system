@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.RestaurantReviewMapper">
+
+  <resultMap id="ReviewResultMap" type="com.example.entity.RestaurantReview">
+    <id property="id" column="id" />
+    <result property="orderId" column="order_id" />
+    <result property="rating" column="rating" />
+    <result property="content" column="content" />
+    <result property="detail" column="detail" />
+    <result property="likes" column="likes" />
+    <result property="deleted" column="is_deleted" />
+    <result property="createdAt" column="created_at" />
+    <result property="updatedAt" column="updated_at" />
+    <association property="restaurant" javaType="com.example.entity.Restaurant" columnPrefix="rest_">
+      <id property="id" column="id" />
+      <result property="restaurantName" column="name" />
+      <result property="restaurantAddress" column="address" />
+      <result property="description" column="description" />
+      <result property="restaurantImageUrl" column="image_url" />
+      <result property="lng" column="lng" />
+      <result property="lat" column="lat" />
+    </association>
+    <association property="user" javaType="com.example.entity.User" columnPrefix="user_">
+      <id property="id" column="id" />
+      <result property="username" column="username" />
+      <result property="nickname" column="nickname" />
+      <result property="avatarUrl" column="avatar_url" />
+    </association>
+  </resultMap>
+
+  <insert id="insert" parameterType="com.example.entity.RestaurantReview" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO restaurant_review (
+      restaurant_id, user_id, order_id, rating, content, detail, likes, is_deleted, created_at, updated_at
+    ) VALUES (
+      #{restaurant.id}, #{user.id}, #{orderId}, #{rating}, #{content}, #{detail},
+      #{likes}, #{deleted}, #{createdAt}, #{updatedAt}
+    )
+  </insert>
+
+  <select id="listByRestaurant" resultMap="ReviewResultMap">
+    SELECT r.id,
+           r.order_id,
+           r.rating,
+           r.content,
+           r.detail,
+           r.likes,
+           r.is_deleted,
+           r.created_at,
+           r.updated_at,
+      u.id AS user_id,
+      u.username AS user_username,
+      u.nickname AS user_nickname,
+      u.avatar_url AS user_avatar_url,
+      rest.id AS rest_id,
+      rest.restaurant_name AS rest_name,
+      rest.restaurant_address AS rest_address,
+      rest.description AS rest_description,
+      rest.restaurant_image_url AS rest_image_url,
+      rest.lng AS rest_lng,
+      rest.lat AS rest_lat
+    FROM restaurant_review r
+    JOIN user u ON r.user_id = u.id
+    JOIN restaurant rest ON r.restaurant_id = rest.id
+    WHERE r.restaurant_id = #{restaurantId}
+      AND r.is_deleted = 0
+    ORDER BY r.created_at DESC
+    LIMIT #{limit} OFFSET #{offset}
+  </select>
+
+  <select id="countByRestaurant" resultType="int">
+    SELECT COUNT(1)
+    FROM restaurant_review
+    WHERE restaurant_id = #{restaurantId}
+      AND is_deleted = 0
+  </select>
+
+  <select id="findById" parameterType="int" resultMap="ReviewResultMap">
+    SELECT r.id,
+           r.order_id,
+           r.rating,
+           r.content,
+           r.detail,
+           r.likes,
+           r.is_deleted,
+           r.created_at,
+           r.updated_at,
+      u.id AS user_id,
+      u.username AS user_username,
+      u.nickname AS user_nickname,
+      u.avatar_url AS user_avatar_url,
+      rest.id AS rest_id,
+      rest.restaurant_name AS rest_name,
+      rest.restaurant_address AS rest_address,
+      rest.description AS rest_description,
+      rest.restaurant_image_url AS rest_image_url,
+      rest.lng AS rest_lng,
+      rest.lat AS rest_lat
+    FROM restaurant_review r
+    JOIN user u ON r.user_id = u.id
+    JOIN restaurant rest ON r.restaurant_id = rest.id
+    WHERE r.id = #{id}
+      AND r.is_deleted = 0
+    LIMIT 1
+  </select>
+
+  <update id="incrementLikes">
+    UPDATE restaurant_review
+    SET likes = likes + #{delta},
+        updated_at = NOW()
+    WHERE id = #{reviewId}
+  </update>
+
+  <select id="averageRatingByRestaurant" resultType="double">
+    SELECT AVG(rating)
+    FROM restaurant_review
+    WHERE restaurant_id = #{restaurantId}
+      AND is_deleted = 0
+  </select>
+
+  <select id="sumLikesByRestaurant" resultType="int">
+    SELECT COALESCE(SUM(likes), 0)
+    FROM restaurant_review
+    WHERE restaurant_id = #{restaurantId}
+      AND is_deleted = 0
+  </select>
+
+</mapper>

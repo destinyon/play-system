@@ -5,8 +5,8 @@
 <mapper namespace="com.example.mapper.RestaurantMapper">
 
   <insert id="insert" parameterType="com.example.entity.Restaurant" useGeneratedKeys="true" keyProperty="id">
-    INSERT INTO `restaurant` (restaurant_name, restaurant_address, restaurant_image_url, lng, lat, restaurateur_id)
-    VALUES (#{restaurantName}, #{restaurantAddress}, #{restaurantImageUrl}, #{lng}, #{lat}, #{restaurateur.id})
+  INSERT INTO `restaurant` (restaurant_name, restaurant_address, description, restaurant_image_url, lng, lat, restaurateur_id)
+  VALUES (#{restaurantName}, #{restaurantAddress}, #{description}, #{restaurantImageUrl}, #{lng}, #{lat}, #{restaurateur.id})
   </insert>
 
   <delete id="deleteByRestaurateurId" parameterType="int">
@@ -14,14 +14,21 @@
   </delete>
 
   <select id="listAll" resultType="com.example.entity.Restaurant">
-    SELECT id, restaurant_name, restaurant_address, restaurant_image_url, lng, lat, restaurateur_id
+  SELECT id, restaurant_name, restaurant_address, description, restaurant_image_url, lng, lat, restaurateur_id
     FROM `restaurant`
   </select>
 
   <select id="getByRestaurateurId" parameterType="int" resultType="com.example.entity.Restaurant">
-    SELECT id, restaurant_name, restaurant_address, restaurant_image_url, lng, lat, restaurateur_id
+  SELECT id, restaurant_name, restaurant_address, description, restaurant_image_url, lng, lat, restaurateur_id
     FROM `restaurant`
     WHERE restaurateur_id = #{restaurateurId}
+    LIMIT 1
+  </select>
+
+  <select id="getById" parameterType="int" resultType="com.example.entity.Restaurant">
+    SELECT id, restaurant_name, restaurant_address, description, restaurant_image_url, lng, lat, restaurateur_id
+    FROM `restaurant`
+    WHERE id = #{id}
     LIMIT 1
   </select>
 
@@ -30,6 +37,7 @@
     <set>
       <if test="restaurantName != null">restaurant_name = #{restaurantName},</if>
       <if test="restaurantAddress != null">restaurant_address = #{restaurantAddress},</if>
+  <if test="description != null">description = #{description},</if>
       <if test="restaurantImageUrl != null">restaurant_image_url = #{restaurantImageUrl},</if>
       <if test="lng != null">lng = #{lng},</if>
       <if test="lat != null">lat = #{lat},</if>

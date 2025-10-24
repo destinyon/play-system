@@ -10,5 +10,6 @@ public interface RestaurantMapper {
     int deleteByRestaurateurId(Integer restaurateurId);
     List<Restaurant> listAll();
     Restaurant getByRestaurateurId(Integer restaurateurId);
+    Restaurant getById(Integer id);
     int updateById(Restaurant restaurant);
 }
