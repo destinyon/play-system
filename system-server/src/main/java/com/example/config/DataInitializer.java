@@ -235,7 +235,7 @@ public class DataInitializer implements ApplicationListener<ApplicationReadyEven
         userMapper.insertUser(restUser);
 
         Restaurateur restaurateur = new Restaurateur();
-        restaurateur.setUser(restUser);
+        restaurateur.setUserId(restUser.getId());
         restaurateur.setIncome(0.0);
         restaurateurMapper.insert(restaurateur);
 
@@ -246,7 +246,7 @@ public class DataInitializer implements ApplicationListener<ApplicationReadyEven
         bundBistro.setDescription("主打沪上融合创意菜，俯瞰外滩江景，提供中英文双语菜单和精品酒单。");
         bundBistro.setLng(121.490317);
         bundBistro.setLat(31.241701);
-        bundBistro.setRestaurateur(restaurateur);
+        bundBistro.setRestaurateurId(restaurateur.getId());
         restaurantMapper.insert(bundBistro);
 
         log.info("Inserted restaurateur user {} with restaurant {}", restUser.getId(), bundBistro.getId());
@@ -258,7 +258,7 @@ public class DataInitializer implements ApplicationListener<ApplicationReadyEven
         userMapper.insertUser(deliveryUser);
 
         Deliveryman deliveryman = new Deliveryman();
-        deliveryman.setUser(deliveryUser);
+        deliveryman.setUserId(deliveryUser.getId());
         deliveryman.setIncome(3200.0);
         deliverymanMapper.insert(deliveryman);
 

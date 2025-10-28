@@ -80,9 +80,7 @@ public class RestaurantServiceImpl implements RestaurantService {
         }
 
         Restaurant restaurant = buildRestaurantFromPayload(data, validation.longitude, validation.latitude);
-        Restaurateur restaurateur = new Restaurateur();
-        restaurateur.setId(restaurateurId);
-        restaurant.setRestaurateur(restaurateur);
+        restaurant.setRestaurateurId(restaurateurId);
 
         Restaurant existed = restaurantMapper.getByRestaurateurId(restaurateurId);
         if (existed != null) {
@@ -123,7 +121,7 @@ public class RestaurantServiceImpl implements RestaurantService {
 
         Restaurant restaurant = restaurantMapper.getByRestaurateurId(restaurateur.getId());
         Map<String, Object> payload = new HashMap<>();
-        payload.put("restaurant", buildRestaurantPayload(restaurant, restaurateur));
+        payload.put("restaurant", buildRestaurantPayload(restaurant, user));
 
         if (restaurant != null && restaurant.getId() != null) {
             int reviewCount = restaurantReviewMapper.countByRestaurant(restaurant.getId());
@@ -181,7 +179,7 @@ public class RestaurantServiceImpl implements RestaurantService {
         boolean isNew = restaurant == null || restaurant.getId() == null;
         if (isNew) {
             restaurant = new Restaurant();
-            restaurant.setRestaurateur(restaurateur);
+            restaurant.setRestaurateurId(restaurateur.getId());
         }
         applyRestaurantDetails(restaurant, data, validation.longitude, validation.latitude);
 
@@ -387,7 +385,7 @@ public class RestaurantServiceImpl implements RestaurantService {
         restaurant.setLat(lat);
     }
 
-    private Map<String, Object> buildRestaurantPayload(Restaurant restaurant, Restaurateur restaurateur) {
+    private Map<String, Object> buildRestaurantPayload(Restaurant restaurant, User owner) {
         Map<String, Object> payload = new HashMap<>();
         if (restaurant == null) {
             payload.put("id", null);
@@ -406,11 +404,11 @@ public class RestaurantServiceImpl implements RestaurantService {
             payload.put("lng", restaurant.getLng());
             payload.put("lat", restaurant.getLat());
         }
-        if (restaurateur != null && restaurateur.getUser() != null) {
-            Map<String, Object> owner = new HashMap<>();
-            owner.put("id", restaurateur.getUser().getId());
-            owner.put("username", restaurateur.getUser().getUsername());
-            payload.put("owner", owner);
+        if (owner != null) {
+            Map<String, Object> ownerPayload = new HashMap<>();
+            ownerPayload.put("id", owner.getId());
+            ownerPayload.put("username", owner.getUsername());
+            payload.put("owner", ownerPayload);
         }
         return payload;
     }
@@ -518,7 +516,7 @@ public class RestaurantServiceImpl implements RestaurantService {
         Restaurateur restaurateur = restaurateurMapper.getByUserId(user.getId());
         if (restaurateur == null) {
             Restaurateur created = new Restaurateur();
-            created.setUser(user);
+            created.setUserId(user.getId());
             restaurateurMapper.insert(created);
             restaurateur = created;
         }

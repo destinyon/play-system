@@ -140,7 +140,7 @@ public class UserServiceImpl implements UserService {
             handleRestaurateurRegistration(data, newUser);
         } else if (role == UserRole.DELIVERYMAN) {
             Deliveryman deliveryman = new Deliveryman();
-            deliveryman.setUser(newUser);
+            deliveryman.setUserId(newUser.getId());
             deliverymanMapper.insert(deliveryman);
         }
 
@@ -357,7 +357,7 @@ public class UserServiceImpl implements UserService {
 
     private void handleRestaurateurRegistration(Map<String, Object> data, User newUser) {
         Restaurateur restaurateur = new Restaurateur();
-        restaurateur.setUser(newUser);
+        restaurateur.setUserId(newUser.getId());
         restaurateurMapper.insert(restaurateur);
 
         String restName = stringValue(data.get("restaurantName"));
@@ -371,7 +371,7 @@ public class UserServiceImpl implements UserService {
             restaurant.setRestaurantImageUrl(stringValue(data.get("restaurantImageUrl")));
             restaurant.setLng(restLng);
             restaurant.setLat(restLat);
-            restaurant.setRestaurateur(restaurateur);
+            restaurant.setRestaurateurId(restaurateur.getId());
             restaurantMapper.insert(restaurant);
         }
     }

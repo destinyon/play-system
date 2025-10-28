@@ -6,7 +6,7 @@
 
   <insert id="insert" parameterType="com.example.entity.Deliveryman" useGeneratedKeys="true" keyProperty="id">
     INSERT INTO `deliveryman` (income, user_id)
-    VALUES (#{income}, #{user.id})
+    VALUES (#{income}, #{userId})
   </insert>
 
   <delete id="deleteByUserId" parameterType="int">

@@ -4,28 +4,39 @@
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.example.mapper.RestaurantMapper">
 
+  <resultMap id="RestaurantResult" type="com.example.entity.Restaurant">
+    <id property="id" column="id" />
+    <result property="restaurantName" column="restaurant_name" />
+    <result property="restaurantAddress" column="restaurant_address" />
+    <result property="description" column="description" />
+    <result property="restaurantImageUrl" column="restaurant_image_url" />
+    <result property="lng" column="lng" />
+    <result property="lat" column="lat" />
+    <result property="restaurateurId" column="restaurateur_id" />
+  </resultMap>
+
   <insert id="insert" parameterType="com.example.entity.Restaurant" useGeneratedKeys="true" keyProperty="id">
-  INSERT INTO `restaurant` (restaurant_name, restaurant_address, description, restaurant_image_url, lng, lat, restaurateur_id)
-  VALUES (#{restaurantName}, #{restaurantAddress}, #{description}, #{restaurantImageUrl}, #{lng}, #{lat}, #{restaurateur.id})
+    INSERT INTO `restaurant` (restaurant_name, restaurant_address, description, restaurant_image_url, lng, lat, restaurateur_id)
+    VALUES (#{restaurantName}, #{restaurantAddress}, #{description}, #{restaurantImageUrl}, #{lng}, #{lat}, #{restaurateurId})
   </insert>
 
   <delete id="deleteByRestaurateurId" parameterType="int">
     DELETE FROM `restaurant` WHERE restaurateur_id = #{restaurateurId}
   </delete>
 
-  <select id="listAll" resultType="com.example.entity.Restaurant">
-  SELECT id, restaurant_name, restaurant_address, description, restaurant_image_url, lng, lat, restaurateur_id
+  <select id="listAll" resultMap="RestaurantResult">
+    SELECT id, restaurant_name, restaurant_address, description, restaurant_image_url, lng, lat, restaurateur_id
     FROM `restaurant`
   </select>
 
-  <select id="getByRestaurateurId" parameterType="int" resultType="com.example.entity.Restaurant">
-  SELECT id, restaurant_name, restaurant_address, description, restaurant_image_url, lng, lat, restaurateur_id
+  <select id="getByRestaurateurId" parameterType="int" resultMap="RestaurantResult">
+    SELECT id, restaurant_name, restaurant_address, description, restaurant_image_url, lng, lat, restaurateur_id
     FROM `restaurant`
     WHERE restaurateur_id = #{restaurateurId}
     LIMIT 1
   </select>
 
-  <select id="getById" parameterType="int" resultType="com.example.entity.Restaurant">
+  <select id="getById" parameterType="int" resultMap="RestaurantResult">
     SELECT id, restaurant_name, restaurant_address, description, restaurant_image_url, lng, lat, restaurateur_id
     FROM `restaurant`
     WHERE id = #{id}
@@ -37,11 +48,11 @@
     <set>
       <if test="restaurantName != null">restaurant_name = #{restaurantName},</if>
       <if test="restaurantAddress != null">restaurant_address = #{restaurantAddress},</if>
-  <if test="description != null">description = #{description},</if>
+      <if test="description != null">description = #{description},</if>
       <if test="restaurantImageUrl != null">restaurant_image_url = #{restaurantImageUrl},</if>
       <if test="lng != null">lng = #{lng},</if>
       <if test="lat != null">lat = #{lat},</if>
-      <if test="restaurateur != null and restaurateur.id != null">restaurateur_id = #{restaurateur.id},</if>
+      <if test="restaurateurId != null">restaurateur_id = #{restaurateurId},</if>
     </set>
     WHERE id = #{id}
   </update>
