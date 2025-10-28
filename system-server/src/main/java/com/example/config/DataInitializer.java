@@ -25,7 +25,6 @@ import org.springframework.lang.NonNull;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.context.ApplicationListener;
-import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -42,7 +41,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@DependsOn("entityManagerFactory")
 @Order(Ordered.LOWEST_PRECEDENCE)
 public class DataInitializer implements ApplicationListener<ApplicationReadyEvent> {
 
@@ -71,7 +69,7 @@ public class DataInitializer implements ApplicationListener<ApplicationReadyEven
         seedMenuItems();
         seedSampleOrders();
         seedChatData();
-    log.info("Database reset complete. Seed users, menu items, and sample orders inserted.");
+        log.info("Database reset complete. Seed users, menu items, and sample orders inserted.");
     }
 
     private void prepareSchema() {

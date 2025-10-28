@@ -1,32 +1,23 @@
 package com.example.entity;
 
-import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 @Data
-@Entity
-@Table(name = "user")
 public class User {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id; // 主键，自增
 
-    @Column(unique = true, nullable = false)
     @NotBlank(message = "用户名不能为空")
     private String username;
 
-    @Column(nullable = false)
     @NotBlank(message = "密码不能为空")
     private String password;
 
     private String nickname;
 
-    @Enumerated(EnumType.STRING)
-    @Column(length = 20)
     private UserRole role;
 
     private String address;
@@ -40,9 +31,7 @@ public class User {
 
     private String avatarUrl;
 
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, optional = true)
     private Deliveryman deliveryman;
 
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, optional = true)
     private Restaurateur restaurateur;
 }
