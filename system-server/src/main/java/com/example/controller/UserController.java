@@ -19,54 +19,54 @@ public class UserController {
     private UserService userService;
 
     @PostMapping("/getById")
-    public Result getById(@RequestBody DataRequest dataRequest) {
+    public Result<Map<String, Object>> getById(@RequestBody DataRequest dataRequest) {
         return userService.getById(dataRequest);
     }
 
     @PostMapping("/getByUsername")
-    public Result getByUsername(@RequestBody DataRequest dataRequest) {
+    public Result<Map<String, Object>> getByUsername(@RequestBody DataRequest dataRequest) {
         return userService.getByUsername(dataRequest);
     }
 
     @PostMapping("/getAllUsers")
-    public Result getAllUsers() {
-        return userService.getAllUsers();
+    public Result<java.util.List<Map<String, Object>>> getAllUsers(@RequestBody(required = false) DataRequest dataRequest) {
+        return userService.getAllUsers(dataRequest == null ? new DataRequest() : dataRequest);
     }
 
     @PostMapping("/login")
-    public Result login(@RequestBody DataRequest dataRequest) {
+    public Result<Map<String, Object>> login(@RequestBody DataRequest dataRequest) {
         return userService.loginService(dataRequest);
     }
 
     @PostMapping("/register")
-    public Result register(@RequestBody DataRequest dataRequest) {
+    public Result<Map<String, Object>> register(@RequestBody DataRequest dataRequest) {
         return userService.registerService(dataRequest);
     }
 
     @PostMapping("/update")
-    public Result update(@RequestBody DataRequest dataRequest) {
+    public Result<Map<String, Object>> update(@RequestBody DataRequest dataRequest) {
         return userService.updateUser(dataRequest);
     }
 
     @PostMapping("/changePassword")
-    public Result changePassword(@RequestBody DataRequest dataRequest) {
+    public Result<Void> changePassword(@RequestBody DataRequest dataRequest) {
         return userService.changePassword(dataRequest);
     }
 
     @PostMapping(value = "/uploadAvatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public Result uploadAvatar(@RequestPart("request") DataRequest request,
+    public Result<Map<String, Object>> uploadAvatar(@RequestPart("request") DataRequest request,
                                @RequestPart("file") MultipartFile file) {
         return userService.uploadAvatar(request, file);
     }
 
     @GetMapping("/avatar/{filename:.+}")
     public ResponseEntity<byte[]> getAvatar(@PathVariable String filename) {
-        Result result = userService.getAvatar(filename);
+        Result<Map<String, Object>> result = userService.getAvatar(filename);
         if (result == null || result.getStatus() == null || result.getStatus() != 200 || result.getData() == null) {
             return ResponseEntity.notFound().build();
         }
 
-        Map<?, ?> data = (Map<?, ?>) result.getData();
+        Map<String, Object> data = result.getData();
         byte[] bytes = (byte[]) data.get("bytes");
         String contentType = data.get("contentType") instanceof String
                 ? (String) data.get("contentType")
@@ -81,10 +81,8 @@ public class UserController {
                 .body(bytes);
     }
 
-
-
     @PostMapping("/stats")
-    public Result getUserStats(@RequestBody DataRequest dataRequest) {
+    public Result<Map<String, Object>> getUserStats(@RequestBody DataRequest dataRequest) {
         return userService.getUserStats(dataRequest);
     }
 }

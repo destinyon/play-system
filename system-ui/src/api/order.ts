@@ -1,4 +1,5 @@
 import type { Result } from './http'
+import { buildAuthHeaders } from './http'
 
 export interface OrderListItem {
   id: number
@@ -47,7 +48,7 @@ export async function getPendingOrders(
 ): Promise<Result<PageResult<OrderListItem>>> {
   const res = await fetch('/api/order/pending', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({
       data: { restaurateurId, keyword: keyword || '' },
       page,
@@ -66,7 +67,7 @@ export async function getOrderList(
 ): Promise<Result<PageResult<OrderListItem>>> {
   const res = await fetch('/api/order/list', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({
       data: { restaurateurId, status: status || '', keyword: keyword || '' },
       page,
@@ -82,7 +83,7 @@ export async function getOrderDetail(
 ): Promise<Result<OrderDetail>> {
   const res = await fetch('/api/order/detail', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({
       data: { orderId, restaurateurId }
     })
@@ -96,7 +97,7 @@ export async function acceptOrder(
 ): Promise<Result<string>> {
   const res = await fetch('/api/order/accept', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({
       data: { orderId, restaurateurId }
     })
@@ -110,7 +111,7 @@ export async function startCooking(
 ): Promise<Result<string>> {
   const res = await fetch('/api/order/start-cooking', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({
       data: { orderId, restaurateurId }
     })
@@ -124,7 +125,7 @@ export async function markOrderReady(
 ): Promise<Result<string>> {
   const res = await fetch('/api/order/ready', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({
       data: { orderId, restaurateurId }
     })
@@ -135,7 +136,7 @@ export async function markOrderReady(
 export async function completeOrder(orderId: number): Promise<Result<string>> {
   const res = await fetch('/api/order/complete', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({
       data: { orderId }
     })
@@ -174,7 +175,7 @@ export async function getRestaurateurStats(
 ): Promise<Result<StatsData>> {
   const res = await fetch('/api/restaurateur/stats', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({
       data: { restaurateurId }
     })
@@ -189,7 +190,7 @@ export async function getRestaurateurMetrics(
 ): Promise<Result<MetricsData>> {
   const res = await fetch('/api/restaurateur/metrics', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({
       data: { from, to, granularity }
     })
@@ -204,7 +205,7 @@ export async function getTopDishes(
 ): Promise<Result<TopDish[]>> {
   const res = await fetch('/api/restaurateur/menu/tops', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({
       data: { from, to, limit }
     })

@@ -18,4 +18,5 @@ public class ChatMessageDto {
     private String content;
     private Boolean read;
     private LocalDateTime createdAt;
+    private String clientMessageId;
 }

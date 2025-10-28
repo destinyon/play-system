@@ -1,4 +1,4 @@
-import { postDataRequest, buildDataRequestBlob } from './http'
+import { postDataRequest, buildDataRequestBlob, buildAuthHeaders } from './http'
 import type { Result } from './http'
 
 export type LoginPayload = { username: string; password: string }
@@ -61,11 +61,11 @@ export type UploadAvatarResponse = {
 // 上传头像
 export const uploadAvatar = async (file: File): Promise<Result<UploadAvatarResponse>> => {
   const formData = new FormData()
-  const requestPayload = { data: {} }
   formData.append('request', buildDataRequestBlob({}))
   formData.append('file', file)
   const res = await fetch('/api/user/uploadAvatar', {
     method: 'POST',
+    headers: buildAuthHeaders(),
     body: formData
   })
   if (!res.ok) {

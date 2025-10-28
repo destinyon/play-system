@@ -12,6 +12,7 @@ import com.example.mapper.RestaurantReviewLikeMapper;
 import com.example.mapper.RestaurantReviewMapper;
 import com.example.mapper.RestaurateurMapper;
 import com.example.mapper.UserMapper;
+import com.example.security.RequestDataHelper;
 import com.example.service.RestaurantService;
 import com.example.util.FileUtil;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +28,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -35,6 +35,9 @@ import java.util.Set;
 public class RestaurantServiceImpl implements RestaurantService {
 
     private static final String RESTAURANT_SUBDIR = "restaurants";
+    private static final int MAX_NAME_LENGTH = 120;
+    private static final int MAX_ADDRESS_LENGTH = 255;
+    private static final int MAX_DESCRIPTION_LENGTH = 2000;
 
     private final RestaurantMapper restaurantMapper;
     private final RestaurateurMapper restaurateurMapper;
@@ -43,54 +46,40 @@ public class RestaurantServiceImpl implements RestaurantService {
     private final RestaurantReviewLikeMapper restaurantReviewLikeMapper;
 
     @Override
-    public Result uploadPhoto(DataRequest request, MultipartFile file) {
+    public Result<Map<String, String>> uploadPhoto(DataRequest request, MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            return Result.error("文件为空");
+            return Result.error("file is empty");
         }
         try {
             String filename = FileUtil.saveFile(file, RESTAURANT_SUBDIR);
-            Map<String, Object> data = new HashMap<>();
-            data.put("url", "/uploads/restaurants/" + filename);
-            data.put("filename", filename);
-            return Result.success(data);
+            Map<String, String> payload = new HashMap<>();
+            payload.put("url", "/uploads/restaurants/" + filename);
+            payload.put("filename", filename);
+            return Result.success("upload success", payload);
         } catch (IOException ex) {
-            return Result.error("上传失败: " + ex.getMessage());
+            return Result.error("upload failed: " + ex.getMessage());
         }
     }
 
     @Override
     @Transactional
-    public Result createOrUpdate(DataRequest request) {
+    public Result<Restaurant> createOrUpdate(DataRequest request) {
         Map<String, Object> data = safeData(request);
         if (data == null) {
-            return Result.error("缺少数据");
+            return Result.error("missing payload");
         }
 
-        String name = stringValue(data.get("name"));
-        String address = stringValue(data.get("address"));
-        if (name == null || address == null) {
-            return Result.error("餐馆名称和详细地址不能为空");
-        }
-
-        Double lng = doubleValue(data.get("lng"));
-        Double lat = doubleValue(data.get("lat"));
-        if (lng == null || lat == null) {
-            return Result.error("经纬度不能为空");
+        ValidationResult validation = validateRestaurantPayload(data);
+        if (!validation.errors.isEmpty()) {
+            return Result.error(String.join("; ", validation.errors));
         }
 
         Integer restaurateurId = resolveRestaurateurId(data);
         if (restaurateurId == null) {
-            return Result.error("无法解析商家信息");
+            return Result.error("unable to resolve restaurateur");
         }
 
-        Restaurant restaurant = new Restaurant();
-        restaurant.setRestaurantName(name);
-        restaurant.setRestaurantAddress(address);
-        restaurant.setDescription(stringValue(data.get("description")));
-        restaurant.setRestaurantImageUrl(stringValue(data.get("photoUrl")));
-        restaurant.setLng(lng);
-        restaurant.setLat(lat);
-
+        Restaurant restaurant = buildRestaurantFromPayload(data, validation.longitude, validation.latitude);
         Restaurateur restaurateur = new Restaurateur();
         restaurateur.setId(restaurateurId);
         restaurant.setRestaurateur(restaurateur);
@@ -102,31 +91,34 @@ public class RestaurantServiceImpl implements RestaurantService {
         } else {
             restaurantMapper.insert(restaurant);
         }
-        return Result.success("操作成功", restaurant);
+        return Result.success("saved", restaurant);
     }
 
     @Override
-    public Result listAll() {
+    public Result<List<Restaurant>> listAll(DataRequest request) {
         List<Restaurant> restaurants = restaurantMapper.listAll();
-        return Result.success(restaurants == null ? Collections.emptyList() : restaurants);
+        if (restaurants == null) {
+            restaurants = Collections.emptyList();
+        }
+        return Result.success(restaurants);
     }
 
     @Override
-    public Result getProfile(DataRequest request) {
+    public Result<Map<String, Object>> getProfile(DataRequest request) {
         Map<String, Object> data = safeData(request);
         String username = extractUsername(data);
         if (username == null) {
-            return Result.error("缺少用户名");
+            return Result.error("missing username");
         }
 
         User user = findUserByUsername(username);
         if (user == null) {
-            return Result.error("用户不存在");
+            return Result.error("user not found");
         }
 
         Restaurateur restaurateur = restaurateurMapper.getByUserId(user.getId());
         if (restaurateur == null) {
-            return Result.error("用户不是商家或尚未完成商家认证");
+            return Result.error("restaurateur profile not found");
         }
 
         Restaurant restaurant = restaurantMapper.getByRestaurateurId(restaurateur.getId());
@@ -161,38 +153,28 @@ public class RestaurantServiceImpl implements RestaurantService {
 
     @Override
     @Transactional
-    public Result saveProfile(DataRequest request) {
-        Map<String, Object> payload = safeData(request);
-        if (payload == null) {
-            return Result.error("请求数据为空");
+    public Result<Restaurant> saveProfile(DataRequest request) {
+        Map<String, Object> data = safeData(request);
+        if (data == null) {
+            return Result.error("missing payload");
         }
-        String username = extractUsername(payload);
+        String username = extractUsername(data);
         if (username == null) {
-            return Result.error("缺少用户名");
+            return Result.error("missing username");
         }
 
-        String name = stringValue(payload.get("name"));
-        String address = stringValue(payload.get("address"));
-        Double lng = doubleValue(payload.get("lng"));
-        Double lat = doubleValue(payload.get("lat"));
-
-        if (name == null) {
-            return Result.error("餐馆名称不能为空");
-        }
-        if (address == null) {
-            return Result.error("餐馆地址不能为空");
-        }
-        if (lng == null || lat == null) {
-            return Result.error("请在地图上选择餐馆位置");
+        ValidationResult validation = validateRestaurantPayload(data);
+        if (!validation.errors.isEmpty()) {
+            return Result.error(String.join("; ", validation.errors));
         }
 
         User user = findUserByUsername(username);
         if (user == null) {
-            return Result.error("用户不存在");
+            return Result.error("user not found");
         }
         Restaurateur restaurateur = restaurateurMapper.getByUserId(user.getId());
         if (restaurateur == null) {
-            return Result.error("用户不是商家或尚未完成商家认证");
+            return Result.error("restaurateur profile not found");
         }
 
         Restaurant restaurant = restaurantMapper.getByRestaurateurId(restaurateur.getId());
@@ -201,33 +183,26 @@ public class RestaurantServiceImpl implements RestaurantService {
             restaurant = new Restaurant();
             restaurant.setRestaurateur(restaurateur);
         }
-
-        restaurant.setRestaurantName(name);
-        restaurant.setRestaurantAddress(address);
-        restaurant.setLng(lng);
-        restaurant.setLat(lat);
-        restaurant.setDescription(stringValue(payload.get("description")));
-        restaurant.setRestaurantImageUrl(stringValue(payload.get("photoUrl")));
+        applyRestaurantDetails(restaurant, data, validation.longitude, validation.latitude);
 
         if (isNew) {
             restaurantMapper.insert(restaurant);
         } else {
             restaurantMapper.updateById(restaurant);
         }
-
-        return Result.success(buildRestaurantPayload(restaurant, restaurateur));
+        return Result.success("saved", restaurant);
     }
 
     @Override
-    public Result listReviews(DataRequest request) {
+    public Result<Map<String, Object>> listReviews(DataRequest request) {
         Map<String, Object> data = safeData(request);
         Integer restaurantId = data == null ? null : intValue(data.get("restaurantId"));
         if (restaurantId == null) {
-            return Result.error("缺少餐馆ID");
+            return Result.error("missing restaurantId");
         }
 
-        Integer page = request != null && request.getPage() != null ? request.getPage() : (data == null ? null : intValue(data.get("page")));
-        Integer size = request != null && request.getSize() != null ? request.getSize() : (data == null ? null : intValue(data.get("size")));
+        Integer page = request != null && request.getPage() != null ? request.getPage() : intValue(data.get("page"));
+        Integer size = request != null && request.getSize() != null ? request.getSize() : intValue(data.get("size"));
         Integer currentUserId = resolveUserId(data);
 
         int pageIndex = page == null || page < 1 ? 1 : page;
@@ -278,17 +253,17 @@ public class RestaurantServiceImpl implements RestaurantService {
 
     @Override
     @Transactional
-    public Result toggleReviewLike(DataRequest request) {
+    public Result<Map<String, Object>> toggleReviewLike(DataRequest request) {
         Map<String, Object> data = safeData(request);
         Integer reviewId = data == null ? null : intValue(data.get("reviewId"));
         Integer currentUserId = resolveUserId(data);
         if (reviewId == null || currentUserId == null) {
-            return Result.error("缺少必要参数");
+            return Result.error("missing required parameters");
         }
 
         RestaurantReview review = restaurantReviewMapper.findById(reviewId);
         if (review == null || review.getId() == null) {
-            return Result.error("评论不存在");
+            return Result.error("review not found");
         }
 
         RestaurantReviewLike existed = restaurantReviewLikeMapper.findByReviewAndUser(reviewId, currentUserId);
@@ -309,104 +284,164 @@ public class RestaurantServiceImpl implements RestaurantService {
             liked = true;
         }
 
-        RestaurantReview updated = restaurantReviewMapper.findById(reviewId);
-        Map<String, Object> payload = buildReviewPayload(updated, null);
+        RestaurantReview refreshed = restaurantReviewMapper.findById(reviewId);
+        Map<String, Object> payload = buildReviewPayload(refreshed, Collections.singleton(currentUserId));
         payload.put("liked", liked);
         return Result.success(payload);
     }
 
     @Override
     @Transactional
-    public Result createReview(DataRequest request) {
+    public Result<Map<String, Object>> createReview(DataRequest request) {
         Map<String, Object> data = safeData(request);
         if (data == null) {
-            return Result.error("请求数据为空");
+            return Result.error("missing payload");
         }
 
         Integer restaurantId = intValue(data.get("restaurantId"));
         Integer userId = resolveUserId(data);
         Integer rating = intValue(data.get("rating"));
-        Integer orderId = intValue(data.get("orderId"));
         String content = stringValue(data.get("content"));
-        String detail = stringValue(data.get("detail"));
-
-        if (restaurantId == null || userId == null) {
-            return Result.error("缺少必要参数");
+        if (restaurantId == null || userId == null || rating == null || content == null) {
+            return Result.error("missing required fields");
         }
-
-        Restaurant restaurant = restaurantMapper.getById(restaurantId);
-        if (restaurant == null) {
-            return Result.error("餐馆不存在");
+        if (rating < 1 || rating > 5) {
+            return Result.error("rating must be between 1 and 5");
         }
-
-        User user = userMapper.getById(userId);
-        if (user == null) {
-            return Result.error("用户不存在");
-        }
-
-        if (content == null || content.isEmpty()) {
-            return Result.error("评论内容不能为空");
-        }
-
-        int rate = rating == null ? 5 : Math.max(1, Math.min(5, rating));
 
         RestaurantReview review = new RestaurantReview();
-        review.setRestaurant(restaurant);
-        review.setUser(user);
-        review.setOrderId(orderId);
-        review.setRating(rate);
+        review.setRestaurant(new Restaurant());
+        review.getRestaurant().setId(restaurantId);
+
+        User author = userMapper.getById(userId);
+        if (author == null) {
+            return Result.error("user not found");
+        }
+        review.setUser(author);
+        review.setOrderId(intValue(data.get("orderId")));
+        review.setRating(rating);
         review.setContent(content);
-        review.setDetail(detail);
-        review.setLikes(0);
-        review.setDeleted(false);
+        review.setDetail(stringValue(data.get("detail")));
         review.setCreatedAt(LocalDateTime.now());
-        review.setUpdatedAt(review.getCreatedAt());
+        review.setLikes(0);
+        review.setDeleted(Boolean.FALSE);
 
         restaurantReviewMapper.insert(review);
-        return Result.success(buildReviewPayload(review, null));
+        Map<String, Object> payload = buildReviewPayload(review, Collections.singleton(userId));
+        return Result.success("created", payload);
+    }
+
+    private ValidationResult validateRestaurantPayload(Map<String, Object> data) {
+        ValidationResult result = new ValidationResult();
+        String name = stringValue(data.get("name"));
+        String address = stringValue(data.get("address"));
+        String description = stringValue(data.get("description"));
+        Double lng = doubleValue(data.get("lng"));
+        Double lat = doubleValue(data.get("lat"));
+
+        if (name == null || name.isEmpty()) {
+            result.errors.add("name is required");
+        } else if (name.length() > MAX_NAME_LENGTH) {
+            result.errors.add("name length exceeds " + MAX_NAME_LENGTH);
+        }
+
+        if (address == null || address.isEmpty()) {
+            result.errors.add("address is required");
+        } else if (address.length() > MAX_ADDRESS_LENGTH) {
+            result.errors.add("address length exceeds " + MAX_ADDRESS_LENGTH);
+        }
+
+        if (description != null && description.length() > MAX_DESCRIPTION_LENGTH) {
+            result.errors.add("description length exceeds " + MAX_DESCRIPTION_LENGTH);
+        }
+
+        if (lng == null || lat == null) {
+            result.errors.add("location is required");
+        } else {
+            if (Math.abs(lng) > 180) {
+                result.errors.add("longitude is invalid");
+            } else {
+                result.longitude = lng;
+            }
+            if (Math.abs(lat) > 90) {
+                result.errors.add("latitude is invalid");
+            } else {
+                result.latitude = lat;
+            }
+        }
+        return result;
+    }
+
+    private Restaurant buildRestaurantFromPayload(Map<String, Object> data, Double lng, Double lat) {
+        Restaurant restaurant = new Restaurant();
+        applyRestaurantDetails(restaurant, data, lng, lat);
+        return restaurant;
+    }
+
+    private void applyRestaurantDetails(Restaurant restaurant, Map<String, Object> data, Double lng, Double lat) {
+        restaurant.setRestaurantName(stringValue(data.get("name")));
+        restaurant.setRestaurantAddress(stringValue(data.get("address")));
+        restaurant.setDescription(truncate(stringValue(data.get("description")), MAX_DESCRIPTION_LENGTH));
+        restaurant.setRestaurantImageUrl(stringValue(data.get("photoUrl")));
+        restaurant.setLng(lng);
+        restaurant.setLat(lat);
     }
 
     private Map<String, Object> buildRestaurantPayload(Restaurant restaurant, Restaurateur restaurateur) {
         Map<String, Object> payload = new HashMap<>();
-        payload.put("id", restaurant == null ? null : restaurant.getId());
-        payload.put("name", restaurant == null ? "" : optionalString(restaurant.getRestaurantName()));
-        payload.put("address", restaurant == null ? "" : optionalString(restaurant.getRestaurantAddress()));
-        payload.put("description", restaurant == null ? "" : optionalString(restaurant.getDescription()));
-        payload.put("lng", restaurant == null ? null : restaurant.getLng());
-        payload.put("lat", restaurant == null ? null : restaurant.getLat());
-        payload.put("photoUrl", restaurant == null ? null : restaurant.getRestaurantImageUrl());
-        payload.put("restaurateurId", restaurateur == null ? null : restaurateur.getId());
+        if (restaurant == null) {
+            payload.put("id", null);
+            payload.put("name", "");
+            payload.put("address", "");
+            payload.put("description", "");
+            payload.put("photoUrl", "");
+            payload.put("lng", null);
+            payload.put("lat", null);
+        } else {
+            payload.put("id", restaurant.getId());
+            payload.put("name", optionalString(restaurant.getRestaurantName()));
+            payload.put("address", optionalString(restaurant.getRestaurantAddress()));
+            payload.put("description", optionalString(restaurant.getDescription()));
+            payload.put("photoUrl", optionalString(restaurant.getRestaurantImageUrl()));
+            payload.put("lng", restaurant.getLng());
+            payload.put("lat", restaurant.getLat());
+        }
+        if (restaurateur != null && restaurateur.getUser() != null) {
+            Map<String, Object> owner = new HashMap<>();
+            owner.put("id", restaurateur.getUser().getId());
+            owner.put("username", restaurateur.getUser().getUsername());
+            payload.put("owner", owner);
+        }
         return payload;
     }
 
     private Map<String, Object> buildReviewPayload(RestaurantReview review, Set<Integer> likedReviewIds) {
-        if (review == null) {
-            return Collections.emptyMap();
-        }
         Map<String, Object> payload = new HashMap<>();
+        if (review == null) {
+            return payload;
+        }
         payload.put("id", review.getId());
         payload.put("rating", review.getRating());
-        payload.put("content", review.getContent());
-        payload.put("detail", review.getDetail());
-        payload.put("likes", review.getLikes());
+        payload.put("content", optionalString(review.getContent()));
+        payload.put("detail", optionalString(review.getDetail()));
+        payload.put("likes", review.getLikes() == null ? 0 : review.getLikes());
+        payload.put("orderId", review.getOrderId());
         payload.put("createdAt", review.getCreatedAt());
-        if (review.getUser() != null) {
-            Map<String, Object> user = new HashMap<>();
-            user.put("id", review.getUser().getId());
-            user.put("username", review.getUser().getUsername());
-            user.put("nickname", Optional.ofNullable(review.getUser().getNickname()).orElse(review.getUser().getUsername()));
-            user.put("avatarUrl", review.getUser().getAvatarUrl());
-            payload.put("user", user);
-        }
         payload.put("liked", likedReviewIds != null && review.getId() != null && likedReviewIds.contains(review.getId()));
-        if (review.getOrderId() != null) {
-            payload.put("orderId", review.getOrderId());
+
+        Map<String, Object> userPayload = new HashMap<>();
+        if (review.getUser() != null) {
+            userPayload.put("id", review.getUser().getId());
+            userPayload.put("username", review.getUser().getUsername());
+            userPayload.put("nickname", review.getUser().getNickname());
+            userPayload.put("avatarUrl", review.getUser().getAvatarUrl());
         }
+        payload.put("user", userPayload);
         return payload;
     }
 
     private Map<String, Object> safeData(DataRequest request) {
-        return request == null ? null : request.getData();
+        return RequestDataHelper.resolve(request);
     }
 
     private String extractUsername(Map<String, Object> data) {
@@ -418,8 +453,7 @@ public class RestaurantServiceImpl implements RestaurantService {
             return direct;
         }
         Object userObj = data.get("user");
-        if (userObj instanceof Map) {
-            Map<?, ?> userMap = (Map<?, ?>) userObj;
+        if (userObj instanceof Map<?, ?> userMap) {
             return stringValue(userMap.get("username"));
         }
         return null;
@@ -434,8 +468,7 @@ public class RestaurantServiceImpl implements RestaurantService {
             return direct;
         }
         Object userObj = data.get("user");
-        if (userObj instanceof Map) {
-            Map<?, ?> userMap = (Map<?, ?>) userObj;
+        if (userObj instanceof Map<?, ?> userMap) {
             Integer nestedId = intValue(userMap.get("id"));
             if (nestedId != null) {
                 return nestedId;
@@ -460,8 +493,7 @@ public class RestaurantServiceImpl implements RestaurantService {
             return direct;
         }
         Object restObj = data.get("restaurateur");
-        if (restObj instanceof Map) {
-            Map<?, ?> restMap = (Map<?, ?>) restObj;
+        if (restObj instanceof Map<?, ?> restMap) {
             Integer nestedId = intValue(restMap.get("id"));
             if (nestedId != null) {
                 return nestedId;
@@ -501,12 +533,12 @@ public class RestaurantServiceImpl implements RestaurantService {
     }
 
     private Integer intValue(Object value) {
-        if (value instanceof Number) {
-            return ((Number) value).intValue();
+        if (value instanceof Number number) {
+            return number.intValue();
         }
-        if (value instanceof String) {
+        if (value instanceof String str) {
             try {
-                return Integer.parseInt(((String) value).trim());
+                return Integer.parseInt(str.trim());
             } catch (NumberFormatException ignored) {
                 return null;
             }
@@ -523,12 +555,12 @@ public class RestaurantServiceImpl implements RestaurantService {
     }
 
     private Double doubleValue(Object obj) {
-        if (obj instanceof Number) {
-            return ((Number) obj).doubleValue();
+        if (obj instanceof Number number) {
+            return number.doubleValue();
         }
-        if (obj instanceof String) {
+        if (obj instanceof String str) {
             try {
-                return Double.valueOf(((String) obj).trim());
+                return Double.valueOf(str.trim());
             } catch (NumberFormatException ignored) {
                 return null;
             }
@@ -540,8 +572,21 @@ public class RestaurantServiceImpl implements RestaurantService {
         return value == null ? "" : value;
     }
 
+    private String truncate(String value, int max) {
+        if (value == null || value.length() <= max) {
+            return value;
+        }
+        return value.substring(0, max);
+    }
+
     private double roundHalfUp(double value, int scale) {
         double factor = Math.pow(10, scale);
         return Math.round(value * factor) / factor;
+    }
+
+    private static class ValidationResult {
+        final List<String> errors = new ArrayList<>();
+        Double longitude;
+        Double latitude;
     }
 }

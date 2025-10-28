@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/deliveryman")
 @RequiredArgsConstructor
@@ -17,7 +19,7 @@ public class DeliverymanController {
     private final DeliverymanService deliverymanService;
 
     @PostMapping("/stats")
-    public Result getStats(@RequestBody DataRequest request) {
+    public Result<Map<String, Object>> getStats(@RequestBody DataRequest request) {
         return deliverymanService.getStats(request);
     }
 }

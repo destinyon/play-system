@@ -1,5 +1,5 @@
 import type { Result } from './http'
-import { postDataRequest, postDataRequestWithPage, buildDataRequestBlob } from './http'
+import { postDataRequest, postDataRequestWithPage, buildDataRequestBlob, buildAuthHeaders } from './http'
 
 // Upload restaurant photo. Backend expected endpoint: /api/restaurant/uploadPhoto
 export async function uploadRestaurantPhoto(file: File): Promise<Result<{ url: string }>> {
@@ -9,6 +9,7 @@ export async function uploadRestaurantPhoto(file: File): Promise<Result<{ url: s
   try {
     const res = await fetch('/api/restaurant/uploadPhoto', {
       method: 'POST',
+      headers: buildAuthHeaders(),
       body: form,
     })
     if (!res.ok) return { status: res.status, message: res.statusText }
@@ -29,7 +30,7 @@ export async function listRestaurants(): Promise<Result<Array<{
   photoUrl?: string
 }>>> {
   try {
-    const res = await fetch('/api/restaurant/list', { method: 'GET' })
+    const res = await fetch('/api/restaurant/list', { method: 'GET', headers: buildAuthHeaders() })
     if (!res.ok) return { status: res.status, message: res.statusText }
     const json = await res.json()
     // 后端返回的是实体字段：restaurantName/restaurantAddress/restaurantImageUrl

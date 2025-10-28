@@ -2,6 +2,8 @@ package com.example.controller;
 
 import com.example.common.DataRequest;
 import com.example.common.Result;
+import com.example.dto.MenuItemDto;
+import com.example.dto.PageResult;
 import com.example.service.MenuItemService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.FileSystemResource;
@@ -18,6 +20,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/restaurateur/menu")
@@ -27,37 +31,37 @@ public class MenuItemController {
     private final MenuItemService menuItemService;
 
     @PostMapping("/list")
-    public Result list(@RequestBody DataRequest request) {
+    public Result<PageResult<MenuItemDto>> list(@RequestBody DataRequest request) {
         return menuItemService.list(request);
     }
 
     @PostMapping("/detail")
-    public Result detail(@RequestBody DataRequest request) {
+    public Result<MenuItemDto> detail(@RequestBody DataRequest request) {
         return menuItemService.detail(request);
     }
 
     @PostMapping("/categories")
-    public Result categories(@RequestBody DataRequest request) {
+    public Result<List<String>> categories(@RequestBody DataRequest request) {
         return menuItemService.listCategories(request);
     }
 
     @PostMapping("/create")
-    public Result create(@RequestBody DataRequest request) {
+    public Result<Integer> create(@RequestBody DataRequest request) {
         return menuItemService.create(request);
     }
 
     @PostMapping("/update")
-    public Result update(@RequestBody DataRequest request) {
+    public Result<Void> update(@RequestBody DataRequest request) {
         return menuItemService.update(request);
     }
 
     @PostMapping("/delete")
-    public Result delete(@RequestBody DataRequest request) {
+    public Result<Void> delete(@RequestBody DataRequest request) {
         return menuItemService.delete(request);
     }
 
     @PostMapping(value = "/upload-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public Result uploadImage(@RequestPart("request") DataRequest request,
+    public Result<Map<String, Object>> uploadImage(@RequestPart("request") DataRequest request,
                               @RequestPart("file") MultipartFile file) {
         return menuItemService.uploadImage(request, file);
     }

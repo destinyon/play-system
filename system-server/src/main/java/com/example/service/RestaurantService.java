@@ -2,22 +2,26 @@ package com.example.service;
 
 import com.example.common.DataRequest;
 import com.example.common.Result;
+import com.example.entity.Restaurant;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+import java.util.Map;
+
 public interface RestaurantService {
-    Result uploadPhoto(DataRequest request, MultipartFile file);
+    Result<Map<String, String>> uploadPhoto(DataRequest request, MultipartFile file);
 
-    Result createOrUpdate(DataRequest request);
+    Result<Restaurant> createOrUpdate(DataRequest request);
 
-    Result listAll();
+    Result<List<Restaurant>> listAll(DataRequest request);
 
-    Result getProfile(DataRequest request);
+    Result<Map<String, Object>> getProfile(DataRequest request);
 
-    Result saveProfile(DataRequest request);
+    Result<Restaurant> saveProfile(DataRequest request);
 
-    Result listReviews(DataRequest request);
+    Result<Map<String, Object>> listReviews(DataRequest request);
 
-    Result toggleReviewLike(DataRequest request);
+    Result<Map<String, Object>> toggleReviewLike(DataRequest request);
 
-    Result createReview(DataRequest request);
+    Result<Map<String, Object>> createReview(DataRequest request);
 }

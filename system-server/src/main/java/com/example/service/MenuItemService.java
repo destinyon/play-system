@@ -2,20 +2,25 @@ package com.example.service;
 
 import com.example.common.DataRequest;
 import com.example.common.Result;
+import com.example.dto.MenuItemDto;
+import com.example.dto.PageResult;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+import java.util.Map;
+
 public interface MenuItemService {
-    Result list(DataRequest request);
+    Result<PageResult<MenuItemDto>> list(DataRequest request);
 
-    Result detail(DataRequest request);
+    Result<MenuItemDto> detail(DataRequest request);
 
-    Result listCategories(DataRequest request);
+    Result<List<String>> listCategories(DataRequest request);
 
-    Result create(DataRequest request);
+    Result<Integer> create(DataRequest request);
 
-    Result update(DataRequest request);
+    Result<Void> update(DataRequest request);
 
-    Result delete(DataRequest request);
+    Result<Void> delete(DataRequest request);
 
-    Result uploadImage(DataRequest request, MultipartFile file);
+    Result<Map<String, Object>> uploadImage(DataRequest request, MultipartFile file);
 }

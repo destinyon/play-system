@@ -1,27 +1,24 @@
-# Play System TODO 清单
+阶段 2 · 前端契约同步
 
-## 短期优先
-- **完善鉴权链路**  
-  - 实现 `system-server/src/main/java/com/example/security/JwtAuthInterceptor.java` 与 `JwtUtil.java`。  
-  - 前端在 `system-ui/src/stores/auth.ts` 与 API 调用中持久化并透传 Token。
-- **替换占位页面**  
-  - 以真实功能实现 `system-ui/src/views/placeholder/RestaurateurDishes.vue`、`RestaurateurOrders.vue` 等关键商家页面。  
-  - 结合后端 `MenuItemServiceImpl` 和 `OrderServiceImpl` 提供完整流程。
-- **聊天稳健性增强**  
-  - 在 `ChatWorkspace.vue` 中补充断线重连、错误提示与发送失败重试。  
-  - 后端 `ChatController` 和 `ChatWebSocketController` 加入失败回执与日志监控。
-- **安全配置**  
-  - 将 `application.yml` 中的 DeepSeek 默认密钥替换为环境变量或密钥管理方案。  
-  - 对文件上传目录 `uploads/` 增加访问控制与清理策略。
+## 阶段进展
+- [x] 完成鉴权链路：后端统一 JWT 工具与拦截器，前端持久化/透传 token 并自动补全账号上下文
+- [x] 替换关键商家占位页：restaurateur dashboard/orders/dishes/restaurant 迁移至正式目录并对齐 API 契约
+- [x] 聊天稳健性增强：前后端补充断线提示、失败回执与重试机制，消息携带 clientMessageId 便于关联
+- [x] 安全配置收敛：DeepSeek 密钥改为环境变量读取，上传目录增加访问过滤与定期清理
+- [ ] 自动化与文档补充：联调自检、端到端测试与升级指引持续推进中
 
-## 中期规划
-- **监控与分析**：为商家/平台提供订单、营收与配送效率的可视化面板。  
-- **通知中心**：整合邮件、短信或站内通知，提醒订单状态变化与聊天未读。  
-- **端到端测试**：利用根目录 Playwright 依赖建立 UI 与 API 自动化回归套件。  
-- **移动端体验**：迭代移动端布局与 PWA 支持，提升跨设备体验。
+## 待办
+- [ ] 更新 `src/api/` 下调用，确保发起 `DataRequest`、接收泛型 `Result<T>`，与后端字段命名 1:1 对齐
+- [ ] 为登录、餐馆资料等核心表单加入前端校验与自定义提示组件（Toast / Modal），与后端校验规则保持一致
 
-## 长期展望
-- **开放平台**：为第三方餐饮系统提供 API/SDK 接入，拓展生态。  
-- **智能调度**：结合地图数据与历史配送表现，实现订单智能派单与路径优化。  
-- **多语言与多地区**：支持多语言界面、货币与税率配置，扩展国际化部署。
+阶段 3 · 样式与结构重构
+- [ ] 在 `system-ui/src/views/styles/` 建立样式目录，持续将 `<style>` 抽离为共享 CSS 并保持主风格统一
+- [ ] 梳理共享样式变量与工具类，避免重复定义，逐步推广到其余视图
 
+阶段 4 · 业务模块推广
+- [ ] 按模块迁移剩余后台与前端（菜单、订单、聊天、配送等），覆盖参数契约、Service/Mapper 校验、前端提示
+- [ ] 梳理数据库脚本与字段说明，确保表结构与实体一致
+
+阶段 5 · 验证与文档
+- [ ] 补充接口/前端联调文档与 TODO Markdown；引入基础自动化（单元/端到端）验证关键流程
+- [ ] 整体回归后打 Tag 或在 README 中记录升级步骤

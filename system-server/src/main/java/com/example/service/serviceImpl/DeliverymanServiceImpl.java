@@ -14,7 +14,7 @@ import java.util.Map;
 public class DeliverymanServiceImpl implements DeliverymanService {
 
     @Override
-    public Result getStats(DataRequest request) {
+    public Result<Map<String, Object>> getStats(DataRequest request) {
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalIncome", 6500.0);
         stats.put("pendingDeliveries", 2);

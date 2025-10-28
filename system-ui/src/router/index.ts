@@ -28,11 +28,11 @@ const router = createRouter({
 
         // Restaurateur section  
         { path: 'restaurateur/home', name: 'restaurateur-home', component: () => import('../views/RestaurateurHome.vue') },
-        { path: 'restaurateur/dashboard', name: 'restaurateur-dashboard', component: () => import('../views/placeholder/RestaurateurDashboard.vue') },
-        { path: 'restaurateur/orders', name: 'restaurateur-orders', component: () => import('../views/placeholder/RestaurateurOrders.vue') },
-        { path: 'restaurateur/dishes', name: 'restaurateur-dishes', component: () => import('../views/placeholder/RestaurateurDishes.vue') },
+        { path: 'restaurateur/dashboard', name: 'restaurateur-dashboard', component: () => import('../views/restaurateur/DashboardView.vue') },
+        { path: 'restaurateur/orders', name: 'restaurateur-orders', component: () => import('../views/restaurateur/OrdersView.vue') },
+        { path: 'restaurateur/dishes', name: 'restaurateur-dishes', component: () => import('../views/restaurateur/DishesView.vue') },
   { path: 'restaurateur/chat', name: 'restaurateur-chat', component: () => import('../views/ChatWorkspace.vue') },
-        { path: 'restaurateur/restaurant', name: 'restaurateur-restaurant', component: () => import('../views/placeholder/RestaurateurRestaurant.vue') },
+        { path: 'restaurateur/restaurant', name: 'restaurateur-restaurant', component: () => import('../views/restaurateur/RestaurantProfileView.vue') },
 
         // Deliveryman section
         { path: 'deliveryman/home', name: 'deliveryman-home', component: () => import('../views/DeliverymanHome.vue') },

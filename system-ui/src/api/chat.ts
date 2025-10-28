@@ -29,6 +29,7 @@ export interface ChatMessageDto {
   content: string
   read: boolean
   createdAt: string
+  clientMessageId?: string | null
 }
 
 export interface ChatOrderSnippet {
@@ -59,6 +60,7 @@ export interface SendMessagePayload {
   receiverRole: ChatRole
   content: string
   username?: string
+  clientMessageId?: string
 }
 
 export function fetchChatSessions(extra: Record<string, any> = {}): Promise<Result<ChatSessionSummary[]>> {

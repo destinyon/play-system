@@ -12,6 +12,7 @@ import com.example.entity.User;
 import com.example.mapper.OrderItemMapper;
 import com.example.mapper.OrderMapper;
 import com.example.mapper.UserMapper;
+import com.example.security.RequestDataHelper;
 import com.example.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -31,177 +32,121 @@ public class OrderServiceImpl implements OrderService {
     private final UserMapper userMapper;
 
     @Override
-    public Result getPendingOrders(DataRequest request) {
-        try {
-            Map<String, Object> data = request.getData();
-            if (data == null) {
-                return Result.error("请求数据不能为空");
-            }
-            
-            Integer restaurateurId = getIntValue(data, "restaurateurId");
-            if (restaurateurId == null) {
-                return Result.error("商家ID不能为空");
-            }
-            
-            String keyword = (String) data.get("keyword");
-            int page = request.getPage() != null ? request.getPage() : 1;
-            int size = request.getSize() != null ? request.getSize() : 10;
-            
-            PageResult<OrderListItemDto> result = pageByStatus(restaurateurId, "PENDING", keyword, page, size);
-            return Result.success(result);
-        } catch (Exception e) {
-            return Result.error("查询待接单订单失败: " + e.getMessage());
+    public Result<PageResult<OrderListItemDto>> getPendingOrders(DataRequest request) {
+        Map<String, Object> data = safeData(request);
+        Integer restaurateurId = getIntValue(data, "restaurateurId");
+        if (restaurateurId == null) {
+            return Result.error("restaurateurId is required");
         }
+
+        String keyword = trimToNull(data.get("keyword"));
+        int page = request != null && request.getPage() != null ? request.getPage() : 1;
+        int size = request != null && request.getSize() != null ? request.getSize() : 10;
+
+        PageResult<OrderListItemDto> result = pageByStatus(restaurateurId, "PENDING", keyword, page, size);
+        return Result.success(result);
     }
 
     @Override
-    public Result getOrderList(DataRequest request) {
-        try {
-            Map<String, Object> data = request.getData();
-            if (data == null) {
-                return Result.error("请求数据不能为空");
-            }
-            
-            Integer restaurateurId = getIntValue(data, "restaurateurId");
-            if (restaurateurId == null) {
-                return Result.error("商家ID不能为空");
-            }
-            
-            String status = (String) data.get("status");
-            String keyword = (String) data.get("keyword");
-            int page = request.getPage() != null ? request.getPage() : 1;
-            int size = request.getSize() != null ? request.getSize() : 10;
-            
-            PageResult<OrderListItemDto> result = pageByStatus(restaurateurId, status, keyword, page, size);
-            return Result.success(result);
-        } catch (Exception e) {
-            return Result.error("查询订单列表失败: " + e.getMessage());
+    public Result<PageResult<OrderListItemDto>> getOrderList(DataRequest request) {
+        Map<String, Object> data = safeData(request);
+        Integer restaurateurId = getIntValue(data, "restaurateurId");
+        if (restaurateurId == null) {
+            return Result.error("restaurateurId is required");
         }
+
+        String status = trimToNull(data.get("status"));
+        String keyword = trimToNull(data.get("keyword"));
+        int page = request != null && request.getPage() != null ? request.getPage() : 1;
+        int size = request != null && request.getSize() != null ? request.getSize() : 10;
+
+        PageResult<OrderListItemDto> result = pageByStatus(restaurateurId, status, keyword, page, size);
+        return Result.success(result);
     }
 
     @Override
-    public Result getOrderDetail(DataRequest request) {
+    public Result<OrderDetailDto> getOrderDetail(DataRequest request) {
+        Map<String, Object> data = safeData(request);
+        Integer orderId = getIntValue(data, "orderId");
+        Integer restaurateurId = getIntValue(data, "restaurateurId");
+        if (orderId == null) {
+            return Result.error("orderId is required");
+        }
         try {
-            Map<String, Object> data = request.getData();
-            if (data == null) {
-                return Result.error("请求数据不能为空");
-            }
-            
-            Integer orderId = getIntValue(data, "orderId");
-            Integer restaurateurId = getIntValue(data, "restaurateurId");
-            
-            if (orderId == null) {
-                return Result.error("订单ID不能为空");
-            }
-            
             OrderDetailDto detail = getDetail(orderId, restaurateurId);
             return Result.success(detail);
-        } catch (IllegalArgumentException e) {
-            return Result.error(e.getMessage());
-        } catch (Exception e) {
-            return Result.error("查询订单详情失败: " + e.getMessage());
+        } catch (IllegalArgumentException ex) {
+            return Result.error(ex.getMessage());
         }
     }
 
     @Override
     @Transactional
-    public Result acceptOrder(DataRequest request) {
+    public Result<Void> acceptOrder(DataRequest request) {
+        Map<String, Object> data = safeData(request);
+        Integer orderId = getIntValue(data, "orderId");
+        Integer restaurateurId = getIntValue(data, "restaurateurId");
+        if (orderId == null || restaurateurId == null) {
+            return Result.error("orderId and restaurateurId are required");
+        }
         try {
-            Map<String, Object> data = request.getData();
-            if (data == null) {
-                return Result.error("请求数据不能为空");
-            }
-            
-            Integer orderId = getIntValue(data, "orderId");
-            Integer restaurateurId = getIntValue(data, "restaurateurId");
-            
-            if (orderId == null || restaurateurId == null) {
-                return Result.error("订单ID和商家ID不能为空");
-            }
-            
             acceptOrderInternal(orderId, restaurateurId);
-            return Result.success("接单成功");
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            return Result.error(e.getMessage());
-        } catch (Exception e) {
-            return Result.error("接单失败: " + e.getMessage());
+            return Result.success("accepted");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            return Result.error(ex.getMessage());
         }
     }
 
     @Override
     @Transactional
-    public Result startCooking(DataRequest request) {
+    public Result<Void> startCooking(DataRequest request) {
+        Map<String, Object> data = safeData(request);
+        Integer orderId = getIntValue(data, "orderId");
+        Integer restaurateurId = getIntValue(data, "restaurateurId");
+        if (orderId == null || restaurateurId == null) {
+            return Result.error("orderId and restaurateurId are required");
+        }
         try {
-            Map<String, Object> data = request.getData();
-            if (data == null) {
-                return Result.error("请求数据不能为空");
-            }
-            
-            Integer orderId = getIntValue(data, "orderId");
-            Integer restaurateurId = getIntValue(data, "restaurateurId");
-            
-            if (orderId == null || restaurateurId == null) {
-                return Result.error("订单ID和商家ID不能为空");
-            }
-            
             startCookingInternal(orderId, restaurateurId);
-            return Result.success("开始制作");
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            return Result.error(e.getMessage());
-        } catch (Exception e) {
-            return Result.error("操作失败: " + e.getMessage());
+            return Result.success("started");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            return Result.error(ex.getMessage());
         }
     }
 
     @Override
     @Transactional
-    public Result markReady(DataRequest request) {
+    public Result<Void> markReady(DataRequest request) {
+        Map<String, Object> data = safeData(request);
+        Integer orderId = getIntValue(data, "orderId");
+        Integer restaurateurId = getIntValue(data, "restaurateurId");
+        if (orderId == null || restaurateurId == null) {
+            return Result.error("orderId and restaurateurId are required");
+        }
         try {
-            Map<String, Object> data = request.getData();
-            if (data == null) {
-                return Result.error("请求数据不能为空");
-            }
-            
-            Integer orderId = getIntValue(data, "orderId");
-            Integer restaurateurId = getIntValue(data, "restaurateurId");
-            
-            if (orderId == null || restaurateurId == null) {
-                return Result.error("订单ID和商家ID不能为空");
-            }
-            
             markReadyInternal(orderId, restaurateurId);
-            return Result.success("已标记为出餐");
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            return Result.error(e.getMessage());
-        } catch (Exception e) {
-            return Result.error("操作失败: " + e.getMessage());
+            return Result.success("ready");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            return Result.error(ex.getMessage());
         }
     }
 
     @Override
     @Transactional
-    public Result completeOrder(DataRequest request) {
+    public Result<Void> completeOrder(DataRequest request) {
+        Map<String, Object> data = safeData(request);
+        Integer orderId = getIntValue(data, "orderId");
+        if (orderId == null) {
+            return Result.error("orderId is required");
+        }
         try {
-            Map<String, Object> data = request.getData();
-            if (data == null) {
-                return Result.error("请求数据不能为空");
-            }
-            
-            Integer orderId = getIntValue(data, "orderId");
-            if (orderId == null) {
-                return Result.error("订单ID不能为空");
-            }
-            
             completeOrderInternal(orderId);
-            return Result.success("订单已完成");
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            return Result.error(e.getMessage());
-        } catch (Exception e) {
-            return Result.error("操作失败: " + e.getMessage());
+            return Result.success("completed");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            return Result.error(ex.getMessage());
         }
     }
 
-    // 内部辅助方法
     private PageResult<OrderListItemDto> pageByStatus(Integer restaurateurId, String status, String keyword, int page, int size) {
         if (restaurateurId == null) {
             return new PageResult<>(0, Collections.emptyList());
@@ -209,36 +154,27 @@ public class OrderServiceImpl implements OrderService {
         int pageNum = Math.max(page, 1);
         int pageSize = Math.max(size, 1);
         int offset = (pageNum - 1) * pageSize;
-        
-        String normalizedKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
-        String normalizedStatus = (status != null && !status.trim().isEmpty()) ? status.trim() : null;
-        
+
+        String normalizedKeyword = trimToNull(keyword);
+        String normalizedStatus = trimToNull(status);
+
         List<OrderInfo> orders = orderMapper.pageByStatus(restaurateurId, normalizedStatus, normalizedKeyword, offset, pageSize);
         Long total = orderMapper.countByStatus(restaurateurId, normalizedStatus, normalizedKeyword);
-        
-        List<OrderListItemDto> records = orders.stream()
-                .map(this::toListItem)
-                .collect(Collectors.toList());
-        
+        List<OrderListItemDto> records = orders.stream().map(this::toListItem).collect(Collectors.toList());
         return new PageResult<>(total, records);
     }
 
     private OrderDetailDto getDetail(Integer orderId, Integer restaurateurId) {
-        if (orderId == null) {
-            throw new IllegalArgumentException("订单ID不能为空");
-        }
-        
         OrderInfo order = orderMapper.getById(orderId);
         if (order == null) {
-            throw new IllegalArgumentException("订单不存在");
+            throw new IllegalArgumentException("order not found");
         }
-        
+
         if (restaurateurId != null && !restaurateurId.equals(order.getRestaurateurId())) {
-            throw new IllegalArgumentException("无权访问此订单");
+            throw new IllegalArgumentException("forbidden");
         }
-        
+
         List<OrderItem> items = orderItemMapper.listByOrderId(orderId);
-        
         OrderDetailDto dto = new OrderDetailDto();
         dto.setId(order.getId());
         dto.setOrderNo(order.getOrderNo());
@@ -248,7 +184,7 @@ public class OrderServiceImpl implements OrderService {
         dto.setTotalAmount(order.getTotalAmount());
         dto.setCreatedAt(order.getCreatedAt());
         dto.setUpdatedAt(order.getUpdatedAt());
-        
+
         if (order.getUserId() != null) {
             User user = userMapper.getById(order.getUserId());
             if (user != null) {
@@ -256,21 +192,20 @@ public class OrderServiceImpl implements OrderService {
                 dto.setCustomerPhone(user.getPhone());
             }
         }
-        
+
         List<OrderItemDto> itemDtos = items.stream()
-                .map(item -> {
-                    OrderItemDto itemDto = new OrderItemDto();
-                    itemDto.setId(item.getId());
-                    itemDto.setDishId(item.getDishId());
-                    itemDto.setDishName(item.getDishName());
-                    itemDto.setDishImage(item.getDishImage());
-                    itemDto.setUnitPrice(item.getUnitPrice());
-                    itemDto.setQuantity(item.getQuantity());
-                    return itemDto;
-                })
-                .collect(Collectors.toList());
+            .map(item -> {
+                OrderItemDto itemDto = new OrderItemDto();
+                itemDto.setId(item.getId());
+                itemDto.setDishId(item.getDishId());
+                itemDto.setDishName(item.getDishName());
+                itemDto.setDishImage(item.getDishImage());
+                itemDto.setUnitPrice(item.getUnitPrice());
+                itemDto.setQuantity(item.getQuantity());
+                return itemDto;
+            })
+            .collect(Collectors.toList());
         dto.setItems(itemDtos);
-        
         return dto;
     }
 
@@ -278,7 +213,7 @@ public class OrderServiceImpl implements OrderService {
         validateOrderOwnership(orderId, restaurateurId);
         int updated = orderMapper.updateStatus(orderId, "PENDING", "PROCESSING");
         if (updated == 0) {
-            throw new IllegalStateException("订单状态不是待接单，无法接单");
+            throw new IllegalStateException("order is not pending");
         }
     }
 
@@ -286,7 +221,7 @@ public class OrderServiceImpl implements OrderService {
         validateOrderOwnership(orderId, restaurateurId);
         OrderInfo order = orderMapper.getById(orderId);
         if (order == null || !"PROCESSING".equals(order.getStatus())) {
-            throw new IllegalStateException("订单状态不正确");
+            throw new IllegalStateException("order status must be PROCESSING");
         }
     }
 
@@ -294,27 +229,27 @@ public class OrderServiceImpl implements OrderService {
         validateOrderOwnership(orderId, restaurateurId);
         int updated = orderMapper.updateStatus(orderId, "PROCESSING", "READY");
         if (updated == 0) {
-            throw new IllegalStateException("订单状态不是处理中，无法标记为已出餐");
+            throw new IllegalStateException("order is not PROCESSING");
         }
     }
 
     private void completeOrderInternal(Integer orderId) {
         int updated = orderMapper.updateStatus(orderId, "READY", "COMPLETED");
         if (updated == 0) {
-            throw new IllegalStateException("订单状态不是已出餐，无法完成");
+            throw new IllegalStateException("order is not READY");
         }
     }
 
     private void validateOrderOwnership(Integer orderId, Integer restaurateurId) {
         if (orderId == null || restaurateurId == null) {
-            throw new IllegalArgumentException("订单ID和商家ID不能为空");
+            throw new IllegalArgumentException("orderId and restaurateurId are required");
         }
         OrderInfo order = orderMapper.getById(orderId);
         if (order == null) {
-            throw new IllegalArgumentException("订单不存在");
+            throw new IllegalArgumentException("order not found");
         }
         if (!restaurateurId.equals(order.getRestaurateurId())) {
-            throw new IllegalArgumentException("无权操作此订单");
+            throw new IllegalArgumentException("forbidden");
         }
     }
 
@@ -322,7 +257,6 @@ public class OrderServiceImpl implements OrderService {
         if (order == null) {
             return null;
         }
-        
         OrderListItemDto dto = new OrderListItemDto();
         dto.setId(order.getId());
         dto.setOrderNo(order.getOrderNo());
@@ -330,32 +264,46 @@ public class OrderServiceImpl implements OrderService {
         dto.setDeliveryAddress(order.getDeliveryAddress());
         dto.setTotalAmount(order.getTotalAmount());
         dto.setCreatedAt(order.getCreatedAt());
-        
+
         if (order.getUserId() != null) {
             User user = userMapper.getById(order.getUserId());
             if (user != null) {
                 dto.setCustomerName(user.getNickname() != null ? user.getNickname() : user.getUsername());
             }
         }
-        
         return dto;
     }
 
+    private Map<String, Object> safeData(DataRequest request) {
+        return RequestDataHelper.resolve(request);
+    }
+
     private Integer getIntValue(Map<String, Object> data, String key) {
+        if (data == null) {
+            return null;
+        }
         Object value = data.get(key);
         if (value == null) {
             return null;
         }
-        if (value instanceof Integer) {
-            return (Integer) value;
+        if (value instanceof Integer integer) {
+            return integer;
         }
-        if (value instanceof Number) {
-            return ((Number) value).intValue();
+        if (value instanceof Number number) {
+            return number.intValue();
         }
         try {
             return Integer.parseInt(value.toString());
-        } catch (NumberFormatException e) {
+        } catch (NumberFormatException ex) {
             return null;
         }
+    }
+
+    private String trimToNull(Object value) {
+        if (value == null) {
+            return null;
+        }
+        String text = value.toString().trim();
+        return text.isEmpty() ? null : text;
     }
 }

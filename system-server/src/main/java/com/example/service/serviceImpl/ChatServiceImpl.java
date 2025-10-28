@@ -15,6 +15,7 @@ import com.example.mapper.ChatSessionMapper;
 import com.example.mapper.OrderMapper;
 import com.example.mapper.RestaurateurMapper;
 import com.example.mapper.UserMapper;
+import com.example.security.RequestDataHelper;
 import com.example.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -46,20 +47,20 @@ public class ChatServiceImpl implements ChatService {
     private final ChatMessageMapper chatMessageMapper;
 
     @Override
-    public Result listSessions(DataRequest request) {
+    public Result<List<ChatSessionSummary>> listSessions(DataRequest request) {
         Map<String, Object> data = safeData(request);
         String username = stringValue(data.get("username"));
         if (username == null) {
-            return Result.error("缺少用户名");
+            return Result.error("username is required");
         }
 
         User user = userMapper.getByUsername(username);
         if (user == null) {
-            return Result.error("用户不存在");
+            return Result.error("user not found");
         }
 
         if (user.getRole() == null) {
-            return Result.error("账号缺少角色信息");
+            return Result.error("user role missing");
         }
 
         return switch (user.getRole()) {
@@ -270,6 +271,7 @@ public class ChatServiceImpl implements ChatService {
 
     private ChatMessageDelivery doSendMessage(DataRequest request) {
         Map<String, Object> data = safeData(request);
+        String clientMessageId = stringValue(data.get("clientMessageId"));
         Integer orderId = intValue(data.get("orderId"));
         Integer receiverId = intValue(data.get("receiverId"));
         String receiverRole = stringValue(data.get("receiverRole"));
@@ -361,6 +363,7 @@ public class ChatServiceImpl implements ChatService {
         chatSessionMapper.updateLastMessage(session.getId(), preview, message.getCreatedAt());
 
         ChatMessageDto dto = mapToDto(message);
+        dto.setClientMessageId(clientMessageId);
         dto.setSessionId(session.getSessionKey());
 
         Map<Integer, OrderInfo> orderCache = new HashMap<>();
@@ -548,7 +551,7 @@ public class ChatServiceImpl implements ChatService {
     }
 
     private Map<String, Object> safeData(DataRequest request) {
-        return request == null ? Collections.emptyMap() : (request.getData() == null ? Collections.emptyMap() : request.getData());
+        return RequestDataHelper.resolve(request);
     }
 
     private String stringValue(Object o) {

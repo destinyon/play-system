@@ -1,4 +1,4 @@
-server:
+﻿server:
   port: 8080
 spring:
   datasource:
@@ -8,7 +8,7 @@ spring:
     password: 123456
   jpa:
     hibernate:
-      ddl-auto: update # 避免重复创建唯一约束/外键导致启动报错
+      ddl-auto: update # 閬垮厤閲嶅鍒涘缓鍞竴绾︽潫/澶栭敭瀵艰嚧鍚姩鎶ラ敊
       # ddl-auto: create-drop
     show-sql: false
   servlet:
@@ -22,6 +22,17 @@ mybatis:
 # DeepSeek AI Configuration
 deepseek:
   api:
-    key: ${DEEPSEEK_API_KEY:sk-11944b7b61964dcebcb8a16001c2b020}
+    key: ${DEEPSEEK_API_KEY:}
     url: ${DEEPSEEK_API_URL:https://api.deepseek.com}
   model: ${DEEPSEEK_MODEL:deepseek-chat}
+
+security:
+  jwt:
+    secret: ${JWT_SECRET:}
+    issuer: ${JWT_ISSUER:play-system}
+    expiration-seconds: ${JWT_EXPIRATION_SECONDS:86400}
+
+uploads:
+  cleanup:
+    enabled: ${UPLOADS_CLEANUP_ENABLED:true}
+    max-age-hours: ${UPLOADS_CLEANUP_MAX_AGE_HOURS:72}

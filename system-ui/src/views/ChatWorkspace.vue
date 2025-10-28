@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="chat-page">
     <section class="chat-sidebar">
       <header class="sidebar-header">
@@ -7,7 +7,7 @@
           <p class="hint">{{ sidebarHint }}</p>
         </div>
         <button class="ghost" type="button" @click="refreshSessions" :disabled="sessionLoading">
-          <span v-if="sessionLoading">刷新中…</span>
+          <span v-if="sessionLoading">刷新中...</span>
           <span v-else>刷新</span>
         </button>
       </header>
@@ -34,7 +34,7 @@
         </div>
       </div>
   <div class="session-list">
-        <p v-if="sessionLoading" class="placeholder">加载会话中…</p>
+        <p v-if="sessionLoading" class="placeholder">加载会话中...</p>
         <p v-else-if="visibleSessions.length === 0" class="placeholder">暂无会话</p>
         <button
           v-for="session in visibleSessions"
@@ -81,9 +81,13 @@
         <span :class="['ws-state', connectionStatusClass]">{{ connectionStatusLabel }}</span>
       </header>
 
+      <transition name="fade">
+        <div v-if="connectionNotice" class="connection-banner">{{ connectionNotice }}</div>
+      </transition>
+
       <div ref="messageContainer" class="message-scroller" @scroll="onMessageScroll">
         <div v-if="!activeSession" class="thread-placeholder">
-          <p>支持实时消息、未读提醒和订单侧边栏。请选择一个会话开始交流。</p>
+          <p>支持实时消息、未读提醒和订单侧边栏。请选择一个会话开始交流...</p>
         </div>
         <template v-else>
           <transition name="fade">
@@ -94,14 +98,14 @@
               @click="loadMore"
               :disabled="messageLoading"
             >
-              {{ messageLoading ? '加载中…' : '查看更多历史消息' }}
+              {{ messageLoading ? '加载中...' : '查看更多历史消息' }}
             </button>
           </transition>
-          <transition-group name="list-fade" tag="div">
+        <transition-group name="list-fade" tag="div">
           <div
             v-for="(message, idx) in activeMessages"
             :key="message.id"
-            :class="['message', message.senderRole === selfRole ? 'outgoing' : 'incoming', message.id < 0 ? 'pending' : '']"
+            :class="['message', message.senderRole === selfRole ? 'outgoing' : 'incoming', message.status === 'pending' ? 'pending' : '', message.status === 'failed' ? 'failed' : '']"
           >
             <div class="avatar small" @click="openUserProfile(message)" :title="messageDisplayName(message)">
               <img v-if="messageAvatar(message)" :src="messageAvatar(message)" :alt="messageDisplayName(message)" />
@@ -111,16 +115,33 @@
               <div :class="['name-line', message.senderRole === selfRole ? 'right' : 'left']">{{ messageDisplayName(message) }}</div>
               <div class="bubble" :data-index="idx">
                 <p class="text">{{ text30(message.content) }}</p>
-                <span class="timestamp">
-                  {{ fullTime(message.createdAt) }}
-                  <em v-if="message.id < 0" class="sending"> · 发送中</em>
+                <span class="timestamp">{{ fullTime(message.createdAt) }}</span>
+              </div>
+              <div
+                v-if="message.senderRole === selfRole && messageStatusLabel(message)"
+                class="bubble-status"
+              >
+                <span
+                  :class="['status-flag', message.status]"
+                  :title="message.status === 'failed' && message.error ? message.error : ''"
+                >
+                  {{ messageStatusLabel(message) }}
                 </span>
+                <button
+                  v-if="message.status === 'failed'"
+                  type="button"
+                  class="link retry-send"
+                  @click="retryMessage(message)"
+                  :disabled="retryingMessages.has(message.clientTempId ?? 0)"
+                >
+                  重试
+                </button>
               </div>
             </div>
           </div>
           </transition-group>
           <p v-if="activeMessages.length === 0 && !messageLoading" class="thread-placeholder">
-            暂无聊天记录，向 {{ activeSession.peerName }} 打招呼吧。
+            暂无聊天记录，向 {{ activeSession.peerName }} 打招呼吧
           </p>
         </template>
       </div>
@@ -135,7 +156,7 @@
         <div class="composer-actions">
           <span class="tip" v-if="sendError">{{ sendError }}</span>
           <button type="button" class="primary" @click="handleSend" :disabled="sendDisabled">
-            {{ sending ? '发送中…' : '发送' }}
+            {{ sending ? '发送中...' : '发送' }}
           </button>
         </div>
       </footer>
@@ -181,15 +202,15 @@
       </div>
       <div v-else key="empty" class="order-card muted">
         <h3>订单信息</h3>
-        <p>选择会话后展示对应订单详情，便于快速响应客户需求。</p>
+        <p>选择会话后展示对应订单详情，便于快速响应客户需求...</p>
       </div>
       </transition>
       <section class="tips">
         <h4>使用提示</h4>
         <ul>
-          <li>实时消息通过 WebSocket 推送，右上角可查看连接状态。</li>
-          <li>新消息会在左侧会话列表显示红点提醒。</li>
-          <li>支持按订单分组的三方会话（客户、商家、骑手）。</li>
+          <li>实时消息通过 WebSocket 推送，右上角可查看连接状态...</li>
+          <li>新消息会在左侧会话列表显示红点提醒...</li>
+          <li>支持按订单分组的三方会话（客户、商家、骑手）...</li>
         </ul>
       </section>
     </aside>
@@ -228,10 +249,24 @@ import type { IFrame, IMessage } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import type { ChatHistoryPayload, ChatMessageDto, ChatOrderSnippet, ChatRole, ChatSessionSummary } from '../api/chat'
+import type { ChatHistoryPayload, ChatMessageDto, ChatOrderSnippet, ChatRole, ChatSessionSummary, SendMessagePayload } from '../api/chat'
 import { fetchChatHistory, fetchChatSessions, markChatRead, sendChatMessage } from '../api/chat'
 import { useAuthStore } from '../stores/auth'
 import { getOrderDetail } from '../api/order'
+
+type ChatMessageViewModel = ChatMessageDto & {
+  clientTempId?: number
+  status?: 'pending' | 'sent' | 'failed'
+  error?: string | null
+  attempts?: number
+}
+
+type PendingMessageMeta = {
+  payload: SendMessagePayload
+  sessionId: string
+  attempts: number
+}
+
 
 const auth = useAuthStore()
 auth.load?.()
@@ -245,18 +280,24 @@ const activeFilter = ref<'ALL' | 'GUEST' | 'DELIVERYMAN' | 'RESTAURATEUR'>('ALL'
 const activeSessionId = ref<string | null>(null)
 const messageContainer = ref<HTMLDivElement | null>(null)
 const composerArea = ref<HTMLTextAreaElement | null>(null)
-const messagesBySession = reactive<Record<string, ChatMessageDto[]>>({})
+const messagesBySession = reactive<Record<string, ChatMessageViewModel[]>>({})
 const historyState = reactive<Record<string, { hasMore: boolean; oldestId?: number }>>({})
 const messageLoading = ref(false)
 const showTopLoaderByScroll = ref(false)
 const composerText = ref('')
 const sending = ref(false)
 const sendError = ref('')
+const connectionNotice = ref('')
+const retryingMessages = ref<Set<number>>(new Set())
+
+const pendingMessages = new Map<number, PendingMessageMeta>()
+let tempIdSeed = 0
 
 const messagePageSize = 10
 const connectionStatus = ref<'DISCONNECTED' | 'CONNECTING' | 'CONNECTED'>('DISCONNECTED')
 let stompClient: Client | null = null
 let refreshTimer: number | undefined
+let reconnectTimer: number | undefined
 
 const selfRole = computed(() => auth.role)
 const chatSelfRole = computed<ChatRole | null>(() => {
@@ -268,7 +309,7 @@ const chatSelfRole = computed<ChatRole | null>(() => {
 
 const sidebarHint = computed(() => {
   if (!selfRole.value) {
-    return '登录后加载专属会话'
+    return '登录后加载专属会话列表'
   }
   if (selfRole.value === 'RESTAURATEUR') {
     return '按订单整理的客户与骑手会话'
@@ -341,7 +382,7 @@ const activeOrder = computed<ChatOrderSnippet | null>(() => {
   return stored ?? null
 })
 
-// 最近相关订单（最多3条）：基于消息内的 orderId 去重并按最近消息时间排序
+// 最近相关订单（最多 3 条）：基于消息中的 orderId 去重并按最近消息时间排序
 const relatedOrders = computed(() => {
   const sess = activeSession.value
   const msgs = activeMessages.value
@@ -359,11 +400,11 @@ const relatedOrders = computed(() => {
     .slice(0,3)
     .map(([oid, time]) => {
       const base = orderBySession[sess.sessionId]
-      // 当前订单用详细信息，其它订单尽力用已知片段（若未来历史接口返回更多订单片段，可在此合并）
       if (base) {
         return { orderId: oid, orderNo: base.orderNo, status: base.status, createdAt: base.createdAt ?? time }
+      }else {
+        return { orderId: oid }
       }
-      // return { orderId: oid, orderNo: undefined, status: undefined, createdAt: time }
     })
   return items
 })
@@ -379,7 +420,7 @@ const connectionStatusLabel = computed(() => {
     case 'CONNECTED':
       return '已连接'
     case 'CONNECTING':
-      return '连接中…'
+      return '连接中...'
     default:
       return '未连接'
   }
@@ -426,7 +467,7 @@ function shortTime(value?: string | null) {
 function text30(s?: string | null, n = 30) {
   if (!s) return ''
   const arr = Array.from(s)
-  return arr.length > n ? arr.slice(0, n).join('') + '…' : s
+  return arr.length > n ? arr.slice(0, n).join('') + '...' : s
 }
 
 function zhStatus(code?: string | null) {
@@ -435,7 +476,7 @@ function zhStatus(code?: string | null) {
     case 'PENDING': return '待处理'
     case 'PROCESSING': return '制作中'
     case 'IN_PROGRESS': return '进行中'
-    case 'READY': return '待取餐'
+    case 'READY': return '待取件'
     case 'COMPLETED': return '已完成'
     case 'CANCELED': return '已取消'
     default: return '未知'
@@ -497,7 +538,7 @@ async function refreshSessions() {
         const tb = b.lastMessageTime ? new Date(b.lastMessageTime).getTime() : 0
         return tb - ta
       })
-      // 统一将 unreadCount 规范为数字，避免出现 '10+' 字符串在前端被直接渲染
+      // 统一 unreadCount 规范为数字，避免出现 '10+' 字符串在前端被直接渲染
       const normalized = sorted.map((s: any) => ({
         ...s,
         unreadCount: normalizeUnread(s?.unreadCount),
@@ -685,78 +726,62 @@ async function handleSend() {
     sendError.value = '请先登录'
     return
   }
-  sending.value = true
   sendError.value = ''
-  const payload = {
+  sending.value = true
+
+  const payload: SendMessagePayload = {
     orderId: session.orderId,
     receiverId: session.peerId,
     receiverRole: session.peerRole,
     content: text,
     username: auth.username,
   }
+
+  const tempId = generateTempId()
+  const pendingMessage: ChatMessageViewModel = {
+    id: tempId,
+    sessionId: session.sessionId,
+    orderId: session.orderId,
+    senderId: 0,
+    senderRole: chatSelfRole.value,
+    receiverId: session.peerId,
+    receiverRole: session.peerRole,
+    content: text,
+    read: false,
+    createdAt: new Date().toISOString(),
+    clientTempId: tempId,
+    status: 'pending',
+    attempts: 1,
+    error: null,
+  }
+
+  appendMessage(session.sessionId, pendingMessage)
+  upsertSessionMeta(session.sessionId, pendingMessage)
+
+  const sessionRecord = sessions.value.find((item) => item.sessionId === session.sessionId)
+  if (sessionRecord) {
+    sessionRecord.unreadCount = 0
+    sessionRecord.lastMessage = pendingMessage.content
+    sessionRecord.lastMessageTime = pendingMessage.createdAt
+  }
+
+  const meta: PendingMessageMeta = {
+    payload: { ...payload },
+    sessionId: session.sessionId,
+    attempts: 1,
+  }
+  pendingMessages.set(tempId, meta)
+
+  composerText.value = ''
+  await nextTick(() => scrollToLast(true))
+  focusComposer()
+
   try {
-    const client = stompClient
-    const useWebSocket = !!client && connectionStatus.value === 'CONNECTED'
-    let snippetSource: ChatMessageDto | null = null
-    if (useWebSocket && client) {
-      client.publish({
-        destination: wsSendDestination(),
-        body: JSON.stringify(payload),
-      })
-      snippetSource = {
-        id: -Date.now(),
-        sessionId: session.sessionId,
-        orderId: session.orderId,
-        senderId: 0,
-        senderRole: chatSelfRole.value,
-        receiverId: session.peerId,
-        receiverRole: session.peerRole,
-        content: text,
-        read: false,
-        createdAt: new Date().toISOString(),
-      }
-      // 先本地插入一条“发送中”的消息，等待服务端回推后替换
-      appendMessage(session.sessionId, { ...snippetSource })
-    } else {
-      const res = await sendChatMessage(payload)
-      if (res.status !== 200) {
-        throw new Error(res.message || '发送失败')
-      }
-      if (res.data) {
-        const delivered: ChatMessageDto = {
-          ...res.data,
-          sessionId: res.data.sessionId ?? session.sessionId,
-        }
-        appendMessage(session.sessionId, delivered)
-        snippetSource = delivered
-      } else {
-        snippetSource = {
-          id: -Date.now(),
-          sessionId: session.sessionId,
-          orderId: session.orderId,
-          senderId: 0,
-          senderRole: chatSelfRole.value,
-          receiverId: session.peerId,
-          receiverRole: session.peerRole,
-          content: text,
-          read: false,
-          createdAt: new Date().toISOString(),
-        }
-        appendMessage(session.sessionId, snippetSource)
-      }
-    }
-    if (snippetSource) {
-      upsertSessionMeta(session.sessionId, snippetSource)
-    }
-    const sessionRecord = sessions.value.find((item) => item.sessionId === session.sessionId)
-    if (sessionRecord) {
-      sessionRecord.unreadCount = 0
-    }
-    composerText.value = ''
-    await nextTick(() => scrollToLast(true))
-    focusComposer()
+    await sendViaTransport(tempId, meta)
   } catch (err: any) {
-    sendError.value = err?.message || '发送失败'
+    const reason = err?.message || '发送失败'
+    sendError.value = reason
+    markMessageFailed(tempId, reason)
     refreshSessions()
     console.error('发送消息失败', err)
   } finally {
@@ -764,12 +789,20 @@ async function handleSend() {
   }
 }
 
-function appendMessage(key: string, message: ChatMessageDto) {
+function appendMessage(key: string, message: ChatMessageViewModel) {
   const list = messagesBySession[key] ?? []
-  if (list.some((item) => item.id === message.id)) {
+  if (message.id > 0 && list.some((item) => item.id === message.id)) {
     return
   }
-  const updated = [...list, message]
+  const enriched: ChatMessageViewModel = {
+    ...message,
+    status: message.status ?? (message.id > 0 ? 'sent' : 'pending'),
+    error: message.error ?? null,
+  }
+  if (enriched.clientTempId == null && enriched.id < 0) {
+    enriched.clientTempId = enriched.id
+  }
+  const updated = [...list, enriched]
   messagesBySession[key] = updated
   const oldest = updated[0]
   historyState[key] = {
@@ -778,6 +811,157 @@ function appendMessage(key: string, message: ChatMessageDto) {
   }
   if (key === activeSessionId.value) {
     nextTick(() => scrollToLast(true))
+  }
+}
+
+
+function generateTempId(): number {
+  tempIdSeed += 1
+  return -(Date.now() + tempIdSeed)
+}
+
+async function sendViaTransport(tempId: number, meta: PendingMessageMeta) {
+  const payloadWithId: SendMessagePayload = {
+    ...meta.payload,
+    clientMessageId: String(tempId),
+  }
+  const client = stompClient
+  const useWebSocket = !!client && connectionStatus.value === 'CONNECTED'
+  if (useWebSocket && client) {
+    client.publish({
+      destination: wsSendDestination(),
+      body: JSON.stringify(payloadWithId),
+    })
+    return
+  }
+  const res = await sendChatMessage(payloadWithId)
+  if (res.status !== 200 || !res.data) {
+    throw new Error(res.message || '发送失败')
+  }
+  replacePendingWithDelivered(tempId, meta.sessionId, res.data)
+}
+
+function replacePendingWithDelivered(tempId: number, sessionId: string, delivered: ChatMessageDto) {
+  const list = messagesBySession[sessionId] ?? []
+  const idx = list.findIndex((m) => (m.clientTempId ?? m.id) === tempId)
+  const normalized: ChatMessageViewModel = {
+    ...delivered,
+    status: 'sent',
+    error: null,
+    clientTempId: tempId,
+  }
+  if (idx >= 0) {
+    const next = [...list]
+    next[idx] = normalized
+    messagesBySession[sessionId] = next
+  } else {
+    appendMessage(sessionId, normalized)
+  }
+  pendingMessages.delete(tempId)
+  removeRetryingFlag(tempId)
+  upsertSessionMeta(sessionId, normalized)
+}
+
+function markMessageFailed(tempId: number, reason: string) {
+  for (const [key, value] of Object.entries(messagesBySession)) {
+    const idx = value.findIndex((m) => (m.clientTempId ?? m.id) === tempId)
+    if (idx >= 0) {
+      const next = [...value]
+      const original = next[idx]!
+      const target: ChatMessageViewModel = {
+        ...original,
+        status: 'failed',
+        error: reason,
+        clientTempId: tempId,
+        attempts: original?.attempts ?? 1,
+        id: tempId,
+      }
+      next[idx] = target
+      messagesBySession[key] = next
+      break
+    }
+  }
+}
+
+function messageStatusLabel(message: ChatMessageViewModel) {
+  if (message.status === 'pending') {
+    return '发送中'
+  }
+  if (message.status === 'failed') {
+    return '发送失败'
+  }
+  return ''
+}
+
+async function retryMessage(message: ChatMessageViewModel) {
+  const tempId = message.clientTempId ?? message.id
+  if (tempId == null) return
+  const meta = pendingMessages.get(tempId)
+  if (!meta) return
+  const list = messagesBySession[meta.sessionId] ?? []
+  const idx = list.findIndex((m) => (m.clientTempId ?? m.id) === tempId)
+  if (idx < 0) return
+  const next = [...list]
+  const current = next[idx]!
+  const refreshed: ChatMessageViewModel = {
+    ...current,
+    status: 'pending',
+    error: null,
+    attempts: (current.attempts ?? 1) + 1,
+    createdAt: new Date().toISOString(),
+    clientTempId: tempId,
+    id: tempId,
+  }
+  next[idx] = refreshed
+  messagesBySession[meta.sessionId] = next
+
+  meta.attempts += 1
+  pendingMessages.set(tempId, meta)
+
+  setRetryingFlag(tempId)
+  try {
+    await sendViaTransport(tempId, meta)
+  } catch (err: any) {
+    const reason = err?.message || '发送失败'
+    sendError.value = reason
+    markMessageFailed(tempId, reason)
+    console.error('重试发送失败', err)
+  } finally {
+    removeRetryingFlag(tempId)
+  }
+}
+
+function setRetryingFlag(tempId: number) {
+  const next = new Set(retryingMessages.value)
+  next.add(tempId)
+  retryingMessages.value = next
+}
+
+function removeRetryingFlag(tempId: number) {
+  if (!retryingMessages.value.has(tempId)) {
+    return
+  }
+  const next = new Set(retryingMessages.value)
+  next.delete(tempId)
+  retryingMessages.value = next
+}
+
+function scheduleReconnect() {
+  if (reconnectTimer || !auth.username) {
+    return
+  }
+  reconnectTimer = window.setTimeout(() => {
+    reconnectTimer = undefined
+    if (auth.username) {
+      connectWebSocket()
+    }
+  }, 3000)
+}
+
+function clearReconnectTimer() {
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer)
+    reconnectTimer = undefined
   }
 }
 
@@ -845,7 +1029,7 @@ function openOrdersModal() {
   }
   // 补齐订单编号与状态：
   // - 商家端优先调用 getOrderDetail(orderId, restaurateurId)
-  // - 其它角色退化为调用 fetchChatHistory 拿 order snippet
+  // - 其它角色退化为调用 fetchChatHistory 获取 order snippet
   const entries = Array.from(latestByOrder.entries())
   const restaurateurIdMaybe = auth.restaurant?.id ? Number(auth.restaurant.id) : undefined
   const tasks = entries.map(async ([oid, meta]) => {
@@ -903,14 +1087,22 @@ function wsSubscriptionPath() {
 
 function connectWebSocket() {
   if (!auth.username) return
-  disconnectWebSocket()
+  clearReconnectTimer()
   connectionStatus.value = 'CONNECTING'
+  if (stompClient) {
+    disconnectWebSocket(true)
+  }
   const endpoint = resolveWsUrl()
+  const headers: Record<string, string> = { username: auth.username }
+  if (auth.token) {
+    const scheme = auth.tokenType || 'Bearer'
+    headers.Authorization = `${scheme} ${auth.token}`
+  }
   const client = new Client({
     reconnectDelay: 5000,
     heartbeatIncoming: 10000,
     heartbeatOutgoing: 10000,
-    connectHeaders: { username: auth.username },
+    connectHeaders: headers,
   })
   // Always use SockJS for compatibility with the server endpoint configured with withSockJS()
   client.webSocketFactory = () => new SockJS(endpoint)
@@ -935,7 +1127,7 @@ function connectWebSocket() {
   stompClient = client
 }
 
-function disconnectWebSocket() {
+function disconnectWebSocket(silent = false) {
   if (stompClient) {
     try {
       stompClient.deactivate()
@@ -944,7 +1136,10 @@ function disconnectWebSocket() {
     }
     stompClient = null
   }
-  connectionStatus.value = 'DISCONNECTED'
+  clearReconnectTimer()
+  if (!silent) {
+    connectionStatus.value = 'DISCONNECTED'
+  }
 }
 
 function handleSocketFrame(frame: IMessage) {
@@ -952,7 +1147,13 @@ function handleSocketFrame(frame: IMessage) {
   try {
     const payload = JSON.parse(frame.body)
     if (payload?.type === 'ERROR') {
-      sendError.value = payload.message ?? '发送失败'
+      const reason = payload.message ?? '发送失败'
+      sendError.value = reason
+      const ref = payload.clientMessageId ? Number(payload.clientMessageId) : NaN
+      if (!Number.isNaN(ref)) {
+        markMessageFailed(ref, reason)
+        removeRetryingFlag(ref)
+      }
       return
     }
     if (payload?.type === 'SESSION_REFRESH') {
@@ -1012,17 +1213,39 @@ function upsertSession(session: ChatSessionSummary) {
 
 function integrateIncoming(message: ChatMessageDto) {
   const key = sessionKey(message)
-  // 若存在同内容且临近时间的“临时负ID”消息，视作送达并用服务端消息替换
   const list = messagesBySession[key] ?? []
-  const idx = list.findIndex((m) => m.id < 0 && m.content === message.content && Math.abs(new Date(m.createdAt).getTime() - new Date(message.createdAt).getTime()) < 15_000 && m.senderRole === message.senderRole)
+  const clientRef = message.clientMessageId ? Number(message.clientMessageId) : NaN
+  let idx = -1
+  if (!Number.isNaN(clientRef)) {
+    idx = list.findIndex((m) => (m.clientTempId ?? m.id) === clientRef)
+  }
+  if (idx < 0) {
+    idx = list.findIndex(
+      (m) =>
+        m.status === 'pending' &&
+        m.content === message.content &&
+        Math.abs(new Date(m.createdAt).getTime() - new Date(message.createdAt).getTime()) < 15_000 &&
+        m.senderRole === message.senderRole,
+    )
+  }
+  const normalized: ChatMessageViewModel = {
+    ...message,
+    status: 'sent',
+    error: null,
+    clientTempId: !Number.isNaN(clientRef) ? clientRef : undefined,
+  }
   if (idx >= 0) {
     const next = [...list]
-    next[idx] = message
+    next[idx] = normalized
     messagesBySession[key] = next
+    if (!Number.isNaN(clientRef)) {
+      pendingMessages.delete(clientRef)
+      removeRetryingFlag(clientRef)
+    }
   } else {
-    appendMessage(key, message)
+    appendMessage(key, normalized)
   }
-  upsertSessionMeta(key, message)
+  upsertSessionMeta(key, normalized)
   if (activeSessionId.value !== key) {
     const target = sessions.value.find((item) => item.sessionId === key)
     if (target) {
@@ -1043,11 +1266,10 @@ function integrateIncoming(message: ChatMessageDto) {
         payload.username = auth.username
       }
       markChatRead(payload).catch((err) => console.warn('实时标记已读失败', err))
-      // 本地也立即将该条消息置为已读
-      const list = messagesBySession[key] ?? []
-      const idx2 = list.findIndex((m) => m.id === message.id)
+      const listForRead = messagesBySession[key] ?? []
+      const idx2 = listForRead.findIndex((m) => m.id === message.id)
       if (idx2 >= 0) {
-        const next = [...list]
+        const next = [...listForRead]
         if (next[idx2]) {
           next[idx2].read = true
         }
@@ -1091,6 +1313,27 @@ watch(
   { immediate: true },
 )
 
+watch(
+  connectionStatus,
+  (status) => {
+    if (status === 'CONNECTED') {
+      connectionNotice.value = ''
+      clearReconnectTimer()
+    } else if (status === 'CONNECTING') {
+      connectionNotice.value = '聊天服务连接中...'
+      clearReconnectTimer()
+    } else if (status === 'DISCONNECTED') {
+      if (!auth.username) {
+        connectionNotice.value = ''
+        clearReconnectTimer()
+        return
+      }
+      connectionNotice.value = '聊天连接已断开，正在尝试重新连接...'
+      scheduleReconnect()
+    }
+  },
+)
+
 watch(selfRole, () => {
   activeFilter.value = 'ALL'
 })
@@ -1104,7 +1347,7 @@ onMounted(() => {
   // 若直接从订单详情跳入，尝试根据 query 预设筛选与光标
   const orderIdParam = route.query.orderId ? Number(route.query.orderId) : undefined
   if (orderIdParam && Number.isFinite(orderIdParam)) {
-    // 等 refreshSessions 完成后会尝试自动打开；这里先做一次关键字设置以便用户视觉聚焦
+    // 待 refreshSessions 完成后会尝试自动打开；这里先做一次关键字设置以便用户视觉聚焦
     keyword.value = String(orderIdParam)
   }
 })
@@ -1127,637 +1370,6 @@ function onMessageScroll() {
   }
 }
 </script>
+<style scoped src='./styles/ChatWorkspace.css'></style>
 
-<style scoped>
-.chat-page {
-  display: grid;
-  grid-template-columns: 300px 1fr 320px;
-  height: calc(100vh - 64px);
-  background: #fff9f0;
-  color: #502600;
-}
 
-.chat-sidebar {
-  border-right: 1px solid rgba(104, 64, 18, 0.2);
-  display: flex;
-  flex-direction: column;
-  padding: 8px;
-  gap: 8px;
-  background: rgba(255, 241, 222, 0.9);
-  /* 允许中栏滚动时自身不撑高 */
-  min-height: 0;
-}
-
-.sidebar-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.sidebar-header h2 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-}
-
-.hint {
-  margin: 2px 0 0;
-  font-size: 12px;
-  color: rgba(80, 38, 0, 0.6);
-}
-
-.ghost {
-  background: transparent;
-  border: 1px solid rgba(80, 38, 0, 0.2);
-  border-radius: 8px;
-  padding: 6px 12px;
-  cursor: pointer;
-}
-
-.ghost:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.sidebar-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.search {
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(80, 38, 0, 0.2);
-  background: #fff;
-}
-
-.filter-tabs {
-  display: flex;
-  gap: 8px;
-}
-
-.tab {
-  flex: 1;
-  border: none;
-  border-radius: 999px;
-  padding: 6px 12px;
-  background: rgba(255, 210, 150, 0.5);
-  cursor: pointer;
-  font-size: 13px;
-}
-
-.tab.active {
-  background: #ff9f55;
-  color: #fff;
-  font-weight: 600;
-}
-
-.session-list {
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-right: 4px;
-}
-
-.session-item {
-  display: grid;
-  grid-template-columns: 48px 1fr;
-  gap: 12px;
-  padding: 12px;
-  border-radius: 16px;
-  border: none;
-  background: rgba(255, 255, 255, 0.8);
-  cursor: pointer;
-  text-align: left;
-  transition: background 0.2s ease;
-}
-
-.session-item:hover {
-  background: rgba(255, 222, 179, 0.8);
-}
-
-.session-item.active {
-  background: #ffb97a;
-  color: #4b2300;
-  box-shadow: 0 6px 16px rgba(255, 145, 0, 0.15);
-}
-
-.session-item.active .snippet {
-  color: rgba(75, 35, 0, 0.8);
-}
-
-.avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: rgba(255, 176, 82, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  font-weight: 600;
-  color: #7f3b00;
-}
-
-.avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.session-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.session-meta .row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-}
-
-.session-meta .name {
-  font-weight: 600;
-}
-
-.session-meta .snippet {
-  font-size: 13px;
-  color: rgba(80, 38, 0, 0.65);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.session-meta .time {
-  font-size: 12px;
-  color: rgba(80, 38, 0, 0.55);
-}
-
-.session-meta .order {
-  font-size: 12px;
-  color: rgba(80, 38, 0, 0.6);
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.badge {
-  min-width: 24px;
-  padding: 2px 6px;
-  border-radius: 999px;
-  background: #ff6d1b;
-  color: #fff;
-  font-size: 12px;
-  text-align: center;
-}
-
-.placeholder {
-  text-align: center;
-  color: rgba(80, 38, 0, 0.5);
-}
-
-.chat-thread {
-  display: flex;
-  flex-direction: column;
-  background: rgba(255, 255, 255, 0.9);
-  /* 关键：允许内部滚动区域收缩，否则子元素无法滚动 */
-  min-height: 0;
-}
-
-.thread-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid rgba(80, 38, 0, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.thread-title h3 {
-  margin: 0;
-  font-size: 18px;
-}
-
-.chip-group {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.chip {
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: rgba(255, 176, 82, 0.3);
-  font-size: 12px;
-  color: #7f3b00;
-}
-
-.ws-state {
-  font-size: 12px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid currentColor;
-}
-
-.ws-state.connected {
-  color: #2f9d52;
-  background: rgba(64, 199, 110, 0.18);
-}
-
-.ws-state.connecting {
-  color: #ff8c37;
-  background: rgba(255, 178, 81, 0.18);
-}
-
-.ws-state.disconnected {
-  color: #c0392b;
-  background: rgba(224, 102, 102, 0.2);
-}
-
-.message-scroller {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden; /* 禁止水平滚动条，长内容向中间收拢换行 */
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  /* 关键：与父 flex 配合，确保可滚动 */
-  min-height: 0;
-  scrollbar-gutter: stable both-edges;
-}
-
-/* Visible custom scrollbar */
-.message-scroller::-webkit-scrollbar {
-  width: 10px;
-}
-.message-scroller::-webkit-scrollbar-track {
-  background: rgba(255, 237, 213, 0.7);
-  border-radius: 8px;
-}
-.message-scroller::-webkit-scrollbar-thumb {
-  background: rgba(249, 115, 22, 0.45);
-  border-radius: 8px;
-}
-.message-scroller {
-  scrollbar-color: rgba(249,115,22,0.45) rgba(255,237,213,0.7);
-  scrollbar-width: thin;
-}
-
-.message {
-  display: flex;
-  align-items: flex-start;
-  gap: 5px;
-  width: 50%; /* 单条消息占满一行，避免挤压头像/名称 */
-}
-
-.message.incoming {
-  justify-content: flex-start;
-}
-
-.message.outgoing {
-  margin-left: auto;
-  justify-content: flex-end;
-  flex-direction: row-reverse;
-}
-
-.message-body {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  max-width: 70%; /* 参照示例：限制文本区域宽度，长消息不外溢 */
-  flex: 0 0 70%; /* 保持占比，避免被压缩过度 */
-}
-.message.outgoing .message-body { align-items: flex-end; }
-.message.incoming .message-body { align-items: flex-start; }
-
-.name-line {
-  font-size: 12px;
-  color: rgba(80, 38, 0, 0.7);
-}
-.name-line.left { text-align: left; padding-left: 4px; }
-.name-line.right { text-align: right; padding-right: 4px; }
-
-.bubble {
-  background: rgba(210, 114, 18, 0.5);
-  padding: 12px 16px;
-  border-radius: 16px;
-  position: relative;
-  line-height: 1.5;
-  box-shadow: 0 4px 12px rgba(255, 145, 0, 0.1);
-  max-width: 100%; /* 由父容器 message-body 控制最大宽度 */
-}
-
-.outgoing .bubble {
-  background: linear-gradient(135deg, #ff9f55, #ff7b3a);
-  color: #fff6ec;
-}
-
-.timestamp {
-  display: block;
-  margin-top: 6px;
-  font-size: 12px;
-  opacity: 0.65;
-}
-.bubble .text {
-  white-space: pre-wrap; /* 多行显示，保留换行 */
-  overflow-wrap: anywhere; /* 超长英文/URL 也能断行 */
-  word-break: break-word;
-}
-
-.message.pending .bubble {
-  opacity: 0.75;
-}
-
-.sending {
-  font-style: normal;
-}
-
-.avatar.small {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: rgba(255, 176, 82, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  font-weight: 600;
-  color: #7f3b00;
-  margin: 0 8px 0 0;
-}
-
-
-.message.outgoing .avatar.small { margin: 0 0 0 8px; }
-
-.avatar.small img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* 响应式：小屏时适当放宽文本区域占比，进一步减少被压缩的概率 */
-@media (max-width: 1024px) {
-  .message-body { max-width: 75%; flex-basis: 75%; }
-}
-@media (max-width: 640px) {
-  .message-body { max-width: 85%; flex-basis: 85%; }
-}
-
-
-
-.read-flag {
-  font-style: normal;
-  color: rgba(80, 38, 0, 0.7);
-}
-
-.load-more {
-  align-self: center;
-  padding: 6px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(80, 38, 0, 0.2);
-  background: rgba(255, 231, 199, 0.7);
-  cursor: pointer;
-}
-
-.fade-enter-active, .fade-leave-active { transition: opacity .2s ease; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
-
-.slide-fade-enter-active, .slide-fade-leave-active { transition: all .24s ease; }
-.slide-fade-enter-from { opacity: 0; transform: translateY(6px); }
-.slide-fade-leave-to { opacity: 0; transform: translateY(6px); }
-
-.list-fade-enter-active, .list-fade-leave-active { transition: all .16s ease; }
-.list-fade-enter-from, .list-fade-leave-to { opacity: 0; transform: translateY(6px); }
-
-.thread-placeholder {
-  text-align: center;
-  color: rgba(80, 38, 0, 0.55);
-  margin: 0 auto;
-}
-
-.composer {
-  padding: 16px 20px;
-  border-top: 1px solid rgba(80, 38, 0, 0.1);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.composer textarea {
-  width: 100%;
-  min-height: 80px;
-  resize: vertical;
-  padding: 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(80, 38, 0, 0.25);
-}
-
-.composer-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.tip {
-  font-size: 12px;
-  color: #c0392b;
-}
-
-.primary {
-  padding: 8px 18px;
-  border-radius: 999px;
-  border: none;
-  background: #ff8137;
-  color: #fff;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 8px 16px rgba(255, 129, 55, 0.3);
-}
-
-.primary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.composer.disabled {
-  align-items: center;
-  justify-content: center;
-  color: rgba(80, 38, 0, 0.5);
-}
-
-.chat-details {
-  border-left: 1px solid rgba(80, 38, 0, 0.2);
-  padding: 20px;
-  background: rgba(255, 250, 240, 0.95);
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  min-height: 0;
-}
-
-.order-card {
-  padding: 16px;
-  border-radius: 18px;
-  background: #fffef8;
-  box-shadow: 0 12px 28px rgba(120, 65, 0, 0.12);
-}
-
-.mini-orders { margin-top: 10px; }
-.mini-orders h4 { margin: 0 0 6px; font-size: 13px; color: rgba(80,38,0,.8); }
-.mini-orders ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
-.mini-orders li { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; font-size: 12px; align-items: center; }
-.mini-orders .ono { font-weight: 600; color: #7f3b00; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mini-orders .ostat { color: rgba(80,38,0,.65); }
-.mini-orders .otime { color: rgba(80,38,0,.55); }
-
-.order-card.muted {
-  background: rgba(255, 255, 255, 0.6);
-  color: rgba(80, 38, 0, 0.6);
-  box-shadow: none;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.card-header h3 {
-  margin: 0;
-  font-size: 16px;
-}
-
-.status {
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: rgba(255, 167, 81, 0.25);
-  font-size: 12px;
-}
-
-.more-orders {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-
-.link {
-  border: none;
-  background: transparent;
-  color: #ff8137;
-  cursor: pointer;
-  font-size: 13px;
-  position: relative;
-  overflow: hidden;
-}
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.35);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 60;
-}
-.modal-panel {
-  width: 720px;
-  max-width: calc(100vw - 40px);
-  background: #fffef8;
-  border-radius: 16px;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.25);
-  display: flex;
-  flex-direction: column;
-  max-height: 80vh;
-  overflow: hidden;
-}
-.modal-header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid rgba(80,38,0,.1); }
-.modal-title { margin:0; font-size:16px; color: #ff6d1b;}
-.modal-body { padding:0; overflow-y:auto; }
-.order-list { list-style:none; margin:0; padding:0; }
-.order-item { padding:12px 16px; border-bottom:1px solid rgba(80,38,0,.06); display:grid; grid-template-columns: 1fr auto; gap:8px; }
-.order-item .meta { font-size:12px; color: rgba(80,38,0,.85); }
-.order-item .title { color:#4b2300; font-weight:600; }
-.status-chip { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; margin-left:6px; }
-.status-chip.pending { background:rgba(255,196,0,.18); color:#9a6b00; }
-.status-chip.processing { background:rgba(255,159,85,.2); color:#7f3b00; }
-.status-chip.in-progress { background:rgba(255,159,85,.2); color:#7f3b00; }
-.status-chip.ready { background:rgba(64,199,110,.18); color:#2f9d52; }
-.status-chip.completed { background:rgba(64,199,110,.18); color:#2f9d52; }
-.status-chip.canceled { background:rgba(224,102,102,.18); color:#c0392b; }
-.modal-body::-webkit-scrollbar { width: 10px; }
-.modal-body::-webkit-scrollbar-track { background: rgba(255, 237, 213, 0.7); border-radius: 8px; }
-.modal-body::-webkit-scrollbar-thumb { background: rgba(249, 115, 22, 0.45); border-radius: 8px; }
-
-
-.link:after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 0;
-  height: 0;
-  background: rgba(255, 129, 55, 0.15);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  transition: width .3s ease, height .3s ease;
-}
-.link:active:after {
-  width: 160px;
-  height: 160px;
-}
-
-dl {
-  margin: 0;
-}
-
-dl div {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  gap: 12px;
-}
-
-.tips {
-  padding: 16px;
-  border-radius: 16px;
-  background: rgba(255, 235, 208, 0.7);
-}
-
-.tips h4 {
-  margin: 0 0 12px;
-  font-size: 14px;
-}
-
-.tips ul {
-  margin: 0;
-  padding-left: 18px;
-  font-size: 13px;
-}
-
-@media (max-width: 1024px) {
-  .chat-page {
-    grid-template-columns: 280px 1fr;
-  }
-  .chat-details {
-    display: none;
-  }
-}
-
-@media (max-width: 640px) {
-  .chat-page {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Orders Modal Root */
-</style>

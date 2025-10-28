@@ -16,6 +16,10 @@ export interface UserState {
   nickname: string
   role: Role | null
   avatarUrl?: string
+  token: string
+  tokenType: string
+  tokenExpiresAt?: string | null
+  tokenIssuedAt?: string | null
   restaurant?: RestaurantInfo | null
 }
 
@@ -25,6 +29,10 @@ export const useAuthStore = defineStore('auth', {
     nickname: '',
     role: null,
     avatarUrl: '',
+    token: '',
+    tokenType: 'Bearer',
+    tokenExpiresAt: null,
+    tokenIssuedAt: null,
     restaurant: null,
   }),
   actions: {
@@ -36,7 +44,25 @@ export const useAuthStore = defineStore('auth', {
         nickname: this.nickname,
         role: this.role,
         avatarUrl: this.avatarUrl,
+        token: this.token,
+        tokenType: this.tokenType,
+        tokenExpiresAt: this.tokenExpiresAt,
+        tokenIssuedAt: this.tokenIssuedAt,
       }))
+    },
+    setToken(token: string, options?: { tokenType?: string; expiresAt?: string | null; issuedAt?: string | null }) {
+      this.token = token
+      if (options?.tokenType) {
+        this.tokenType = options.tokenType
+      }
+      if (Object.prototype.hasOwnProperty.call(options ?? {}, 'expiresAt')) {
+        this.tokenExpiresAt = options?.expiresAt ?? null
+      }
+      if (Object.prototype.hasOwnProperty.call(options ?? {}, 'issuedAt')) {
+        this.tokenIssuedAt = options?.issuedAt ?? null
+      }
+      // keep persisted state in sync
+      this.setUser({})
     },
     setRestaurant(info: RestaurantInfo | null) {
       this.restaurant = info
@@ -50,6 +76,10 @@ export const useAuthStore = defineStore('auth', {
           this.nickname = data.nickname || ''
           this.role = data.role || null
           this.avatarUrl = data.avatarUrl || ''
+          this.token = data.token || ''
+          this.tokenType = data.tokenType || 'Bearer'
+          this.tokenExpiresAt = data.tokenExpiresAt || null
+          this.tokenIssuedAt = data.tokenIssuedAt || null
         }
       } catch {}
     },
@@ -58,6 +88,9 @@ export const useAuthStore = defineStore('auth', {
       this.nickname = ''
       this.role = null
       this.avatarUrl = ''
+       this.token = ''
+       this.tokenExpiresAt = null
+       this.tokenIssuedAt = null
       this.restaurant = null
       localStorage.removeItem('auth.user')
     }
