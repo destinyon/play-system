@@ -2,24 +2,30 @@ package com.example.controller;
 
 import com.example.common.DataRequest;
 import com.example.common.Result;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 import com.example.service.RestaurantService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/restaurant")
+@RequiredArgsConstructor
 public class RestaurantController {
 
-    @Autowired
-    private RestaurantService restaurantService;
+    private final RestaurantService restaurantService;
 
     // Simple demo storage: upload handling moved to RestaurantService. Controller delegates to service.
 
     @PostMapping(value = "/uploadPhoto", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public Result uploadPhoto(@RequestParam("file") MultipartFile file) {
-        return restaurantService.uploadPhoto(file);
+    public Result uploadPhoto(@RequestPart("request") DataRequest request,
+                              @RequestPart("file") MultipartFile file) {
+        return restaurantService.uploadPhoto(request, file);
     }
 
     @PostMapping("/createOrUpdate")

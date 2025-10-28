@@ -285,7 +285,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Result getUserStats() {
+    public Result getUserStats(DataRequest dataRequest) {
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalUsers", getTotalUserCount());
         stats.put("guestCount", getUserCountByRole("GUEST"));
@@ -315,7 +315,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Result uploadAvatar(MultipartFile file) {
+    public Result uploadAvatar(DataRequest request, MultipartFile file) {
         if (file == null || file.isEmpty()) {
             return Result.error("文件为空");
         }
@@ -324,6 +324,10 @@ public class UserServiceImpl implements UserService {
             Map<String, String> payload = new HashMap<>();
             payload.put("filename", filename);
             payload.put("url", "/api/user/avatar/" + filename);
+            Map<String, Object> data = safeData(request);
+            if (data != null && data.containsKey("username")) {
+                payload.put("username", stringValue(data.get("username")));
+            }
             return Result.success("头像上传成功", payload);
         } catch (IOException ex) {
             return Result.error("上传失败: " + ex.getMessage());

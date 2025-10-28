@@ -767,6 +767,7 @@ watch(
   display: flex;
   flex-direction: column;
   gap: 28px;
+  scrollbar-color: #f97316 rgba(251, 191, 36, 0.12);
 }
 
 .content-scroll::-webkit-scrollbar {
@@ -781,10 +782,6 @@ watch(
 .content-scroll::-webkit-scrollbar-thumb {
   background: linear-gradient(135deg, #f97316, #f59e0b);
   border-radius: 999px;
-}
-
-.content-scroll {
-  scrollbar-color: #f97316 rgba(251, 191, 36, 0.12);
 }
 
 .layout {

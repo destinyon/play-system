@@ -22,13 +22,20 @@ function enrichPayload(payload: Record<string, any>) {
   return requestPayload
 }
 
-export async function postDataRequest<T = any>(url: string, payload: Record<string, any>): Promise<Result<T>> {
-  const requestPayload = enrichPayload(payload)
+export function buildDataRequestPayload(payload: Record<string, any> = {}) {
+  return { data: enrichPayload(payload) }
+}
 
+export function buildDataRequestBlob(payload: Record<string, any> = {}) {
+  return new Blob([JSON.stringify(buildDataRequestPayload(payload))], { type: 'application/json' })
+}
+
+export async function postDataRequest<T = any>(url: string, payload: Record<string, any>): Promise<Result<T>> {
+  const body = buildDataRequestPayload(payload)
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ data: requestPayload }),
+    body: JSON.stringify(body),
   })
   if (!res.ok) {
     return { status: res.status, message: res.statusText } as Result<T>

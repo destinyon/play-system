@@ -180,6 +180,7 @@ public class DataInitializer implements ApplicationListener<ApplicationReadyEven
         List<String> tables = Arrays.asList(
                 "order_item",
                 "order_info",
+            "menu_item",
                 "chat_message",
                 "chat_session",
                 "restaurant_review_like",
@@ -327,83 +328,274 @@ public class DataInitializer implements ApplicationListener<ApplicationReadyEven
             return;
         }
         LocalDateTime now = LocalDateTime.now();
+        
+        // 热菜系列
         MenuItem spicyFish = new MenuItem();
         spicyFish.setRestaurateurId(restaurateur.getId());
         spicyFish.setName("川味水煮鱼");
         spicyFish.setCategory("热菜");
         spicyFish.setPrice(new java.math.BigDecimal("68.00"));
-        spicyFish.setImageUrl("/uploads/restaurants/dishes/spicy-fish.jpg");
+        spicyFish.setImageUrl("/uploads/dishes/川味水煮鱼1.png");
         spicyFish.setDescription("精选花椒与郫县豆瓣酱烹制，鲜香麻辣，极具四川风味。");
         spicyFish.setStatus("ON_SHELF");
         spicyFish.setDeleted(false);
         spicyFish.setCreatedAt(now.minusDays(3));
         spicyFish.setUpdatedAt(now.minusDays(1));
-        menuItemMapper.insert(spicyFish);
-
-        MenuItem salad = new MenuItem();
-        salad.setRestaurateurId(restaurateur.getId());
-        salad.setName("清新金枪鱼沙拉");
-        salad.setCategory("凉菜");
-        salad.setPrice(new java.math.BigDecimal("36.00"));
-        salad.setImageUrl("/uploads/restaurants/dishes/tuna-salad.jpg");
-        salad.setDescription("低脂金枪鱼搭配时蔬与特调油醋，适合轻食人群。");
-        salad.setStatus("ON_SHELF");
-        salad.setDeleted(false);
-        salad.setCreatedAt(now.minusDays(2));
-        salad.setUpdatedAt(now.minusHours(12));
-        menuItemMapper.insert(salad);
-
-        MenuItem dessert = new MenuItem();
-        dessert.setRestaurateurId(restaurateur.getId());
-        dessert.setName("桂花酒酿圆子");
-        dessert.setCategory("甜品");
-        dessert.setPrice(new java.math.BigDecimal("28.00"));
-        dessert.setImageUrl("/uploads/restaurants/dishes/osmanthus-riceball.jpg");
-        dessert.setDescription("糯米圆子搭配自制桂花酒酿，温润香甜，是饭后暖心之选。");
-        dessert.setStatus("ON_SHELF");
-        dessert.setDeleted(false);
-        dessert.setCreatedAt(now.minusDays(5));
-        dessert.setUpdatedAt(now.minusDays(2));
-        menuItemMapper.insert(dessert);
+        saveOrUpdateMenuItem(spicyFish);
 
         MenuItem steak = new MenuItem();
         steak.setRestaurateurId(restaurateur.getId());
         steak.setName("外滩牛排");
         steak.setCategory("热菜");
         steak.setPrice(new java.math.BigDecimal("88.00"));
-        steak.setImageUrl("/uploads/restaurants/dishes/steak.jpg");
+        steak.setImageUrl("/uploads/dishes/外滩牛排2.png");
         steak.setDescription("精选澳洲和牛，配黑椒汁或蘑菇汁，肉质鲜嫩多汁。");
         steak.setStatus("ON_SHELF");
         steak.setDeleted(false);
         steak.setCreatedAt(now.minusDays(4));
         steak.setUpdatedAt(now.minusDays(1));
-        menuItemMapper.insert(steak);
-
-        MenuItem tea = new MenuItem();
-        tea.setRestaurateurId(restaurateur.getId());
-        tea.setName("店制冰柠茶");
-        tea.setCategory("饮品");
-        tea.setPrice(new java.math.BigDecimal("20.00"));
-        tea.setImageUrl("/uploads/restaurants/dishes/lemon-tea.jpg");
-        tea.setDescription("新鲜柠檬手打，清爽解腻，冷热皆宜。");
-        tea.setStatus("ON_SHELF");
-        tea.setDeleted(false);
-        tea.setCreatedAt(now.minusDays(3));
-        tea.setUpdatedAt(now.minusHours(6));
-        menuItemMapper.insert(tea);
+        saveOrUpdateMenuItem(steak);
 
         MenuItem duck = new MenuItem();
         duck.setRestaurateurId(restaurateur.getId());
         duck.setName("玫瑰烤鸭");
         duck.setCategory("热菜");
         duck.setPrice(new java.math.BigDecimal("128.00"));
-        duck.setImageUrl("/uploads/restaurants/dishes/roast-duck.jpg");
-        duck.setDescription("创意烤鸭，玫瑰花瓣与果木香结合，配荷叶饼和甜面酱。");
+        duck.setImageUrl("/uploads/dishes/玫瑰烤鸭3.png");
+        duck.setDescription("创意烤鸭，玫瑰花瓣与果木香结合,配荷叶饼和甜面酱。");
         duck.setStatus("ON_SHELF");
         duck.setDeleted(false);
         duck.setCreatedAt(now.minusDays(6));
         duck.setUpdatedAt(now.minusDays(3));
-        menuItemMapper.insert(duck);
+        saveOrUpdateMenuItem(duck);
+
+        MenuItem kungPao = new MenuItem();
+        kungPao.setRestaurateurId(restaurateur.getId());
+        kungPao.setName("宫保鸡丁");
+        kungPao.setCategory("热菜");
+        kungPao.setPrice(new java.math.BigDecimal("48.00"));
+        kungPao.setImageUrl("/uploads/dishes/宫保鸡丁4.png");
+        kungPao.setDescription("经典川菜，鸡肉嫩滑，花生香脆，酸甜微辣，回味无穷。");
+        kungPao.setStatus("ON_SHELF");
+        kungPao.setDeleted(false);
+        kungPao.setCreatedAt(now.minusDays(5));
+        kungPao.setUpdatedAt(now.minusDays(2));
+        saveOrUpdateMenuItem(kungPao);
+
+        MenuItem braised = new MenuItem();
+        braised.setRestaurateurId(restaurateur.getId());
+        braised.setName("红烧肉");
+        braised.setCategory("热菜");
+        braised.setPrice(new java.math.BigDecimal("58.00"));
+        braised.setImageUrl("/uploads/dishes/红烧肉5.png");
+        braised.setDescription("肥而不腻，瘦而不柴，酱色红润，入口即化，配白米饭绝配。");
+        braised.setStatus("ON_SHELF");
+        braised.setDeleted(false);
+        braised.setCreatedAt(now.minusDays(4));
+        braised.setUpdatedAt(now.minusDays(1));
+        saveOrUpdateMenuItem(braised);
+
+        // 凉菜系列
+        MenuItem salad = new MenuItem();
+        salad.setRestaurateurId(restaurateur.getId());
+        salad.setName("清新金枪鱼沙拉");
+        salad.setCategory("凉菜");
+        salad.setPrice(new java.math.BigDecimal("36.00"));
+        salad.setImageUrl("/uploads/dishes/清新金枪鱼沙拉6.png");
+        salad.setDescription("低脂金枪鱼搭配时蔬与特调油醋，适合轻食人群。");
+        salad.setStatus("ON_SHELF");
+        salad.setDeleted(false);
+        salad.setCreatedAt(now.minusDays(2));
+        salad.setUpdatedAt(now.minusHours(12));
+        saveOrUpdateMenuItem(salad);
+
+        MenuItem cucumber = new MenuItem();
+        cucumber.setRestaurateurId(restaurateur.getId());
+        cucumber.setName("凉拌黄瓜");
+        cucumber.setCategory("凉菜");
+        cucumber.setPrice(new java.math.BigDecimal("15.00"));
+        cucumber.setImageUrl("/uploads/dishes/凉拌黄瓜7.png");
+        cucumber.setDescription("新鲜黄瓜拍碎，蒜蓉香醋调味，清脆爽口，开胃解腻。");
+        cucumber.setStatus("ON_SHELF");
+        cucumber.setDeleted(false);
+        cucumber.setCreatedAt(now.minusDays(3));
+        cucumber.setUpdatedAt(now.minusDays(1));
+        saveOrUpdateMenuItem(cucumber);
+
+        MenuItem tofu = new MenuItem();
+        tofu.setRestaurateurId(restaurateur.getId());
+        tofu.setName("麻辣豆腐丝");
+        tofu.setCategory("凉菜");
+        tofu.setPrice(new java.math.BigDecimal("18.00"));
+        tofu.setImageUrl("/uploads/dishes/麻辣豆腐丝8.png");
+        tofu.setDescription("豆腐干切丝，麻辣鲜香，口感筋道，佐酒小菜的首选。");
+        tofu.setStatus("OFF_SHELF");
+        tofu.setDeleted(false);
+        tofu.setCreatedAt(now.minusDays(4));
+        tofu.setUpdatedAt(now.minusDays(2));
+        saveOrUpdateMenuItem(tofu);
+
+        // 甜品系列
+        MenuItem dessert = new MenuItem();
+        dessert.setRestaurateurId(restaurateur.getId());
+        dessert.setName("桂花酒酿圆子");
+        dessert.setCategory("甜品");
+        dessert.setPrice(new java.math.BigDecimal("28.00"));
+        dessert.setImageUrl("/uploads/dishes/桂花酒酿圆子9.png");
+        dessert.setDescription("糯米圆子搭配自制桂花酒酿，温润香甜，是饭后暖心之选。");
+        dessert.setStatus("ON_SHELF");
+        dessert.setDeleted(false);
+        dessert.setCreatedAt(now.minusDays(5));
+        dessert.setUpdatedAt(now.minusDays(2));
+        saveOrUpdateMenuItem(dessert);
+
+        MenuItem mango = new MenuItem();
+        mango.setRestaurateurId(restaurateur.getId());
+        mango.setName("芒果班戟");
+        mango.setCategory("甜品");
+        mango.setPrice(new java.math.BigDecimal("32.00"));
+        mango.setImageUrl("/uploads/dishes/芒果班戟10.png");
+        mango.setDescription("薄如蝉翼的班戟皮包裹新鲜芒果与淡奶油，甜而不腻，冰爽宜人。");
+        mango.setStatus("ON_SHELF");
+        mango.setDeleted(false);
+        mango.setCreatedAt(now.minusDays(3));
+        mango.setUpdatedAt(now.minusDays(1));
+        saveOrUpdateMenuItem(mango);
+
+        MenuItem tiramisu = new MenuItem();
+        tiramisu.setRestaurateurId(restaurateur.getId());
+        tiramisu.setName("提拉米苏");
+        tiramisu.setCategory("甜品");
+        tiramisu.setPrice(new java.math.BigDecimal("38.00"));
+        tiramisu.setImageUrl("/uploads/dishes/提拉米苏11.png");
+        tiramisu.setDescription("意式经典甜品，马斯卡彭奶酪配咖啡酒手指饼，口感绵密，回味悠长。");
+        tiramisu.setStatus("ON_SHELF");
+        tiramisu.setDeleted(false);
+        tiramisu.setCreatedAt(now.minusDays(4));
+        tiramisu.setUpdatedAt(now.minusDays(2));
+        saveOrUpdateMenuItem(tiramisu);
+
+        // 饮品系列
+        MenuItem tea = new MenuItem();
+        tea.setRestaurateurId(restaurateur.getId());
+        tea.setName("店制冰柠茶");
+        tea.setCategory("饮品");
+        tea.setPrice(new java.math.BigDecimal("20.00"));
+        tea.setImageUrl("/uploads/dishes/店制冰柠茶12.png");
+        tea.setDescription("新鲜柠檬手打，清爽解腻，冷热皆宜。");
+        tea.setStatus("ON_SHELF");
+        tea.setDeleted(false);
+        tea.setCreatedAt(now.minusDays(3));
+        tea.setUpdatedAt(now.minusHours(6));
+        saveOrUpdateMenuItem(tea);
+
+        MenuItem orange = new MenuItem();
+        orange.setRestaurateurId(restaurateur.getId());
+        orange.setName("鲜榨橙汁");
+        orange.setCategory("饮品");
+        orange.setPrice(new java.math.BigDecimal("22.00"));
+        orange.setImageUrl("/uploads/dishes/鲜榨橙汁13.png");
+        orange.setDescription("现点现榨，100%纯鲜橙汁，富含维C，健康美味。");
+        orange.setStatus("ON_SHELF");
+        orange.setDeleted(false);
+        orange.setCreatedAt(now.minusDays(4));
+        orange.setUpdatedAt(now.minusDays(1));
+        saveOrUpdateMenuItem(orange);
+
+        MenuItem milk = new MenuItem();
+        milk.setRestaurateurId(restaurateur.getId());
+        milk.setName("港式奶茶");
+        milk.setCategory("饮品");
+        milk.setPrice(new java.math.BigDecimal("18.00"));
+        milk.setImageUrl("/uploads/dishes/港式奶茶14.png");
+        milk.setDescription("丝袜奶茶配方，茶香浓郁，奶香醇厚，冷热皆可，经典茶餐厅味道。");
+        milk.setStatus("ON_SHELF");
+        milk.setDeleted(false);
+        milk.setCreatedAt(now.minusDays(5));
+        milk.setUpdatedAt(now.minusDays(2));
+        saveOrUpdateMenuItem(milk);
+
+        // 主食系列
+        MenuItem rice = new MenuItem();
+        rice.setRestaurateurId(restaurateur.getId());
+        rice.setName("黄金蛋炒饭");
+        rice.setCategory("主食");
+        rice.setPrice(new java.math.BigDecimal("18.00"));
+        rice.setImageUrl("/uploads/dishes/黄金蛋炒饭15.png");
+        rice.setDescription("粒粒分明的扬州炒饭，蛋液裹饭，色泽金黄，鲜香可口。");
+        rice.setStatus("ON_SHELF");
+        rice.setDeleted(false);
+        rice.setCreatedAt(now.minusDays(4));
+        rice.setUpdatedAt(now.minusDays(1));
+        saveOrUpdateMenuItem(rice);
+
+        MenuItem noodles = new MenuItem();
+        noodles.setRestaurateurId(restaurateur.getId());
+        noodles.setName("招牌手擀面");
+        noodles.setCategory("主食");
+        noodles.setPrice(new java.math.BigDecimal("22.00"));
+        noodles.setImageUrl("/uploads/dishes/招牌手擀面16.png");
+        noodles.setDescription("厨师现场手擀，劲道爽滑，可配红烧肉汤或番茄鸡蛋汤。");
+        noodles.setStatus("ON_SHELF");
+        noodles.setDeleted(false);
+        noodles.setCreatedAt(now.minusDays(5));
+        noodles.setUpdatedAt(now.minusDays(2));
+        saveOrUpdateMenuItem(noodles);
+
+        MenuItem yangzhou = new MenuItem();
+        yangzhou.setRestaurateurId(restaurateur.getId());
+        yangzhou.setName("扬州炒饭");
+        yangzhou.setCategory("主食");
+        yangzhou.setPrice(new java.math.BigDecimal("25.00"));
+        yangzhou.setImageUrl("/uploads/dishes/扬州炒饭17.png");
+        yangzhou.setDescription("虾仁、火腿、青豆等配料丰富，色香味俱全，江南名菜。");
+        yangzhou.setStatus("ON_SHELF");
+        yangzhou.setDeleted(false);
+        yangzhou.setCreatedAt(now.minusDays(3));
+        yangzhou.setUpdatedAt(now.minusDays(1));
+        saveOrUpdateMenuItem(yangzhou);
+
+        MenuItem scallion = new MenuItem();
+        scallion.setRestaurateurId(restaurateur.getId());
+        scallion.setName("葱油拌面");
+        scallion.setCategory("主食");
+        scallion.setPrice(new java.math.BigDecimal("16.00"));
+        scallion.setImageUrl("/uploads/dishes/葱油拌面18.png");
+        scallion.setDescription("上海经典小吃，葱油熬制香浓，拌面简单却回味悠长。");
+        scallion.setStatus("ON_SHELF");
+        scallion.setDeleted(false);
+        scallion.setCreatedAt(now.minusDays(4));
+        scallion.setUpdatedAt(now.minusDays(1));
+        saveOrUpdateMenuItem(scallion);
+    }
+
+    private void saveOrUpdateMenuItem(MenuItem item) {
+        if (item.getRestaurateurId() == null) {
+            return;
+        }
+        MenuItem existing = menuItemMapper.findByRestaurateurAndName(item.getRestaurateurId(), item.getName());
+        if (existing == null) {
+            if (item.getDeleted() == null) {
+                item.setDeleted(Boolean.FALSE);
+            }
+            if (item.getCreatedAt() == null) {
+                item.setCreatedAt(LocalDateTime.now());
+            }
+            if (item.getUpdatedAt() == null) {
+                item.setUpdatedAt(item.getCreatedAt());
+            }
+            menuItemMapper.insert(item);
+            log.info("Seeded menu item '{}' for restaurateur {}", item.getName(), item.getRestaurateurId());
+            return;
+        }
+        item.setId(existing.getId());
+        item.setDeleted(Boolean.FALSE);
+        item.setCreatedAt(existing.getCreatedAt());
+        if (item.getUpdatedAt() == null) {
+            item.setUpdatedAt(existing.getUpdatedAt() != null ? existing.getUpdatedAt() : LocalDateTime.now());
+        }
+        menuItemMapper.update(item);
+        log.info("Refreshed menu item '{}' for restaurateur {}", item.getName(), item.getRestaurateurId());
     }
 
     private void seedSampleOrders() {
@@ -436,8 +628,8 @@ public class DataInitializer implements ApplicationListener<ApplicationReadyEven
                 pending.getCreatedAt(), pending.getUpdatedAt());
         Integer pendingId = jdbcTemplate.queryForObject("SELECT id FROM order_info WHERE order_no = ?", Integer.class, pending.getOrderNo());
         insertOrderItems(pendingId, new Object[][]{
-                {"川味水煮鱼", "/uploads/restaurants/dishes/spicy-fish.jpg", "68.00", 1},
-                {"桂花酒酿圆子", "/uploads/restaurants/dishes/osmanthus-riceball.jpg", "34.00", 1}
+                {"川味水煮鱼", "/uploads/dishes/spicy-fish.jpg", "68.00", 1},
+                {"桂花酒酿圆子", "/uploads/dishes/osmanthus-riceball.jpg", "34.00", 1}
         });
 
         OrderInfo inProgress = new OrderInfo();
@@ -458,7 +650,7 @@ public class DataInitializer implements ApplicationListener<ApplicationReadyEven
                 inProgress.getCreatedAt(), inProgress.getUpdatedAt());
         Integer inProgressId = jdbcTemplate.queryForObject("SELECT id FROM order_info WHERE order_no = ?", Integer.class, inProgress.getOrderNo());
         insertOrderItems(inProgressId, new Object[][]{
-                {"清新金枪鱼沙拉", "/uploads/restaurants/dishes/tuna-salad.jpg", "36.00", 1},
+                {"清新金枪鱼沙拉", "/uploads/dishes/tuna-salad.jpg", "36.00", 1},
                 {"店制冰柠茶", null, "20.00", 1}
         });
 
@@ -480,7 +672,7 @@ public class DataInitializer implements ApplicationListener<ApplicationReadyEven
                 ready.getCreatedAt(), ready.getUpdatedAt());
         Integer readyId = jdbcTemplate.queryForObject("SELECT id FROM order_info WHERE order_no = ?", Integer.class, ready.getOrderNo());
         insertOrderItems(readyId, new Object[][]{
-                {"外滩牛排", "/uploads/restaurants/dishes/steak.jpg", "88.00", 1}
+                {"外滩牛排", "/uploads/dishes/steak.jpg", "88.00", 1}
         });
 
         // Additional orders for richer data
@@ -502,8 +694,8 @@ public class DataInitializer implements ApplicationListener<ApplicationReadyEven
                 processing1.getCreatedAt(), processing1.getUpdatedAt());
         Integer processing1Id = jdbcTemplate.queryForObject("SELECT id FROM order_info WHERE order_no = ?", Integer.class, processing1.getOrderNo());
         insertOrderItems(processing1Id, new Object[][]{
-                {"玫瑰烤鸭", "/uploads/restaurants/dishes/roast-duck.jpg", "128.00", 1},
-                {"桂花酒酿圆子", "/uploads/restaurants/dishes/osmanthus-riceball.jpg", "28.00", 1}
+                {"玫瑰烤鸭", "/uploads/dishes/roast-duck.jpg", "128.00", 1},
+                {"桂花酒酿圆子", "/uploads/dishes/osmanthus-riceball.jpg", "28.00", 1}
         });
 
         OrderInfo completed1 = new OrderInfo();
@@ -524,8 +716,8 @@ public class DataInitializer implements ApplicationListener<ApplicationReadyEven
                 completed1.getCreatedAt(), completed1.getUpdatedAt());
         Integer completed1Id = jdbcTemplate.queryForObject("SELECT id FROM order_info WHERE order_no = ?", Integer.class, completed1.getOrderNo());
         insertOrderItems(completed1Id, new Object[][]{
-                {"川味水煮鱼", "/uploads/restaurants/dishes/spicy-fish.jpg", "68.00", 1},
-                {"清新金枪鱼沙拉", "/uploads/restaurants/dishes/tuna-salad.jpg", "36.00", 1}
+                {"川味水煮鱼", "/uploads/dishes/spicy-fish.jpg", "68.00", 1},
+                {"清新金枪鱼沙拉", "/uploads/dishes/tuna-salad.jpg", "36.00", 1}
         });
 
         OrderInfo completed2 = new OrderInfo();
@@ -546,9 +738,9 @@ public class DataInitializer implements ApplicationListener<ApplicationReadyEven
                 completed2.getCreatedAt(), completed2.getUpdatedAt());
         Integer completed2Id = jdbcTemplate.queryForObject("SELECT id FROM order_info WHERE order_no = ?", Integer.class, completed2.getOrderNo());
         insertOrderItems(completed2Id, new Object[][]{
-                {"玫瑰烤鸭", "/uploads/restaurants/dishes/roast-duck.jpg", "128.00", 1},
-                {"外滩牛排", "/uploads/restaurants/dishes/steak.jpg", "88.00", 1},
-                {"店制冰柠茶", "/uploads/restaurants/dishes/lemon-tea.jpg", "20.00", 1}
+                {"玫瑰烤鸭", "/uploads/dishes/roast-duck.jpg", "128.00", 1},
+                {"外滩牛排", "/uploads/dishes/steak.jpg", "88.00", 1},
+                {"店制冰柠茶", "/uploads/dishes/lemon-tea.jpg", "20.00", 1}
         });
 
         OrderInfo pending2 = new OrderInfo();
@@ -569,9 +761,9 @@ public class DataInitializer implements ApplicationListener<ApplicationReadyEven
                 pending2.getCreatedAt(), pending2.getUpdatedAt());
         Integer pending2Id = jdbcTemplate.queryForObject("SELECT id FROM order_info WHERE order_no = ?", Integer.class, pending2.getOrderNo());
         insertOrderItems(pending2Id, new Object[][]{
-                {"玫瑰烤鸭", "/uploads/restaurants/dishes/roast-duck.jpg", "128.00", 1},
-                {"桂花酒酿圆子", "/uploads/restaurants/dishes/osmanthus-riceball.jpg", "28.00", 1},
-                {"店制冰柠茶", "/uploads/restaurants/dishes/lemon-tea.jpg", "20.00", 1}
+                {"玫瑰烤鸭", "/uploads/dishes/roast-duck.jpg", "128.00", 1},
+                {"桂花酒酿圆子", "/uploads/dishes/osmanthus-riceball.jpg", "28.00", 1},
+                {"店制冰柠茶", "/uploads/dishes/lemon-tea.jpg", "20.00", 1}
         });
     }
 

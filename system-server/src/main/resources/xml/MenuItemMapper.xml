@@ -63,7 +63,20 @@
           OR description LIKE CONCAT('%', #{keyword}, '%')
         )
       </if>
-    ORDER BY COALESCE(updated_at, created_at) DESC
+    <choose>
+      <when test="sortBy == 'price'">
+        ORDER BY price ${sortOrder}, id DESC
+      </when>
+      <when test="sortBy == 'name'">
+        ORDER BY name ${sortOrder}, id DESC
+      </when>
+      <when test="sortBy == 'updated_at'">
+        ORDER BY COALESCE(updated_at, created_at) ${sortOrder}, id DESC
+      </when>
+      <otherwise>
+        ORDER BY created_at ${sortOrder}, id DESC
+      </otherwise>
+    </choose>
     LIMIT #{limit} OFFSET #{offset}
   </select>
 
@@ -87,6 +100,16 @@
       </if>
   </select>
 
+  <select id="findByRestaurateurAndName" resultMap="MenuItemResult">
+    SELECT *
+    FROM menu_item
+    WHERE restaurateur_id = #{restaurateurId}
+      AND name = #{name}
+      AND COALESCE(is_deleted, 0) = 0
+    ORDER BY id ASC
+    LIMIT 1
+  </select>
+
   <select id="listCategories" resultType="string">
     SELECT DISTINCT category
     FROM menu_item
@@ -104,6 +127,15 @@
         updated_at = CURRENT_TIMESTAMP
     WHERE id = #{id}
       AND restaurateur_id = #{restaurateurId}
+  </update>
+
+  <update id="updateImage">
+    UPDATE menu_item
+    SET image_url = #{imageUrl},
+        updated_at = #{updatedAt}
+    WHERE id = #{id}
+      AND restaurateur_id = #{restaurateurId}
+      AND COALESCE(is_deleted, 0) = 0
   </update>
 
 </mapper>

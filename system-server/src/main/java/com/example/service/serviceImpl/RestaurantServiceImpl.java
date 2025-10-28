@@ -43,7 +43,7 @@ public class RestaurantServiceImpl implements RestaurantService {
     private final RestaurantReviewLikeMapper restaurantReviewLikeMapper;
 
     @Override
-    public Result uploadPhoto(MultipartFile file) {
+    public Result uploadPhoto(DataRequest request, MultipartFile file) {
         if (file == null || file.isEmpty()) {
             return Result.error("文件为空");
         }

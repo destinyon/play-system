@@ -29,6 +29,10 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           ws: true,
         },
+        '/uploads': {
+          target: 'http://localhost:8080',
+          changeOrigin: true,
+        },
         // Map styles (optional; if you use custom styles)
         '/_AMapService/v4/map/styles': {
           target: 'https://webapi.amap.com',

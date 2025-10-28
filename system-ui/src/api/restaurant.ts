@@ -1,9 +1,10 @@
 import type { Result } from './http'
-import { postDataRequest, postDataRequestWithPage } from './http'
+import { postDataRequest, postDataRequestWithPage, buildDataRequestBlob } from './http'
 
 // Upload restaurant photo. Backend expected endpoint: /api/restaurant/uploadPhoto
 export async function uploadRestaurantPhoto(file: File): Promise<Result<{ url: string }>> {
   const form = new FormData()
+  form.append('request', buildDataRequestBlob({}))
   form.append('file', file)
   try {
     const res = await fetch('/api/restaurant/uploadPhoto', {

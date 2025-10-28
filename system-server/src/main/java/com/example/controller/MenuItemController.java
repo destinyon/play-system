@@ -2,15 +2,22 @@ package com.example.controller;
 
 import com.example.common.DataRequest;
 import com.example.common.Result;
-import com.example.dto.MenuItemDto;
-import com.example.dto.MenuItemForm;
-import com.example.dto.PageResult;
 import com.example.service.MenuItemService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-import java.util.Map;
+import java.io.File;
 
 @RestController
 @RequestMapping("/api/restaurateur/menu")
@@ -20,113 +27,55 @@ public class MenuItemController {
     private final MenuItemService menuItemService;
 
     @PostMapping("/list")
-    public Result page(@RequestBody DataRequest request) {
-        Map<String, Object> data = request.getData();
-        Integer restaurateurId = getIntValue(data, "restaurateurId");
-        String keyword = (String) data.get("keyword");
-        String category = (String) data.get("category");
-        String status = (String) data.get("status");
-        Integer page = request.getPage() != null ? request.getPage() : 1;
-        Integer size = request.getSize() != null ? request.getSize() : 8;
-        
-        PageResult<MenuItemDto> result = menuItemService.page(restaurateurId, keyword, category, status, page, size);
-        return Result.success(result);
+    public Result list(@RequestBody DataRequest request) {
+        return menuItemService.list(request);
     }
 
     @PostMapping("/detail")
     public Result detail(@RequestBody DataRequest request) {
-        Map<String, Object> data = request.getData();
-        Integer id = getIntValue(data, "id");
-        Integer restaurateurId = getIntValue(data, "restaurateurId");
-        
-        MenuItemDto dto = menuItemService.getById(id, restaurateurId);
-        if (dto == null) {
-            return Result.error("未找到菜品");
-        }
-        return Result.success(dto);
+        return menuItemService.detail(request);
     }
 
     @PostMapping("/categories")
     public Result categories(@RequestBody DataRequest request) {
-        Map<String, Object> data = request.getData();
-        Integer restaurateurId = getIntValue(data, "restaurateurId");
-        
-        List<String> categories = menuItemService.listCategories(restaurateurId);
-        return Result.success(categories);
+        return menuItemService.listCategories(request);
     }
 
     @PostMapping("/create")
     public Result create(@RequestBody DataRequest request) {
-        try {
-            Map<String, Object> data = request.getData();
-            Integer restaurateurId = getIntValue(data, "restaurateurId");
-            
-            // Parse form from data map
-            MenuItemForm form = parseMenuItemForm(data);
-            
-            menuItemService.create(restaurateurId, form);
-            return Result.success("创建成功");
-        } catch (IllegalArgumentException ex) {
-            return Result.error(ex.getMessage());
-        }
+        return menuItemService.create(request);
     }
 
     @PostMapping("/update")
     public Result update(@RequestBody DataRequest request) {
-        try {
-            Map<String, Object> data = request.getData();
-            Integer id = getIntValue(data, "id");
-            Integer restaurateurId = getIntValue(data, "restaurateurId");
-            
-            MenuItemForm form = parseMenuItemForm(data);
-            form.setId(id);
-            
-            menuItemService.update(restaurateurId, form);
-            return Result.success("更新成功");
-        } catch (IllegalArgumentException ex) {
-            return Result.error(ex.getMessage());
-        }
+        return menuItemService.update(request);
     }
 
     @PostMapping("/delete")
-    public Result remove(@RequestBody DataRequest request) {
-        Map<String, Object> data = request.getData();
-        Integer id = getIntValue(data, "id");
-        Integer restaurateurId = getIntValue(data, "restaurateurId");
-        
-        menuItemService.softDelete(id, restaurateurId);
-        return Result.success("删除成功");
+    public Result delete(@RequestBody DataRequest request) {
+        return menuItemService.delete(request);
     }
-    
-    private Integer getIntValue(Map<String, Object> data, String key) {
-        Object value = data.get(key);
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof Integer) {
-            return (Integer) value;
-        }
-        if (value instanceof Number) {
-            return ((Number) value).intValue();
-        }
-        return Integer.parseInt(value.toString());
+
+    @PostMapping(value = "/upload-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Result uploadImage(@RequestPart("request") DataRequest request,
+                              @RequestPart("file") MultipartFile file) {
+        return menuItemService.uploadImage(request, file);
     }
-    
-    private MenuItemForm parseMenuItemForm(Map<String, Object> data) {
-        MenuItemForm form = new MenuItemForm();
-        if (data.get("id") != null) {
-            form.setId(getIntValue(data, "id"));
+
+    @GetMapping("/default-image")
+    public ResponseEntity<Resource> getDefaultImage() {
+        try {
+            File defaultImageFile = new File("uploads/dishes/default.png");
+            if (defaultImageFile.exists()) {
+                Resource resource = new FileSystemResource(defaultImageFile);
+                return ResponseEntity.ok()
+                        .contentType(MediaType.IMAGE_PNG)
+                        .header(HttpHeaders.CACHE_CONTROL, "max-age=31536000")
+                        .body(resource);
+            }
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
         }
-        form.setName((String) data.get("name"));
-        form.setCategory((String) data.get("category"));
-        form.setDescription((String) data.get("description"));
-        form.setImageUrl((String) data.get("imageUrl"));
-        if (data.get("price") != null) {
-            form.setPrice(new java.math.BigDecimal(data.get("price").toString()));
-        }
-        if (data.get("status") != null) {
-            form.setStatus((String) data.get("status"));
-        }
-        return form;
     }
 }

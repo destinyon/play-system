@@ -5,7 +5,7 @@ import com.example.common.Result;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface RestaurantService {
-    Result uploadPhoto(MultipartFile file);
+    Result uploadPhoto(DataRequest request, MultipartFile file);
 
     Result createOrUpdate(DataRequest request);
 

@@ -11,8 +11,8 @@ public interface UserService {
     Result getAllUsers();
     Result updateUser(DataRequest dataRequest);
     Result changePassword(DataRequest dataRequest);
-    Result getUserStats();
-    Result uploadAvatar(MultipartFile file);
+    Result getUserStats(DataRequest dataRequest);
+    Result uploadAvatar(DataRequest dataRequest, MultipartFile file);
     Result getAvatar(String filename);
     int getTotalUserCount();
     int getUserCountByRole(String role);

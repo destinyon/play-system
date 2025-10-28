@@ -1,4 +1,4 @@
-import { postDataRequest } from './http'
+import { postDataRequest, buildDataRequestBlob } from './http'
 import type { Result } from './http'
 
 export type LoginPayload = { username: string; password: string }
@@ -61,6 +61,8 @@ export type UploadAvatarResponse = {
 // 上传头像
 export const uploadAvatar = async (file: File): Promise<Result<UploadAvatarResponse>> => {
   const formData = new FormData()
+  const requestPayload = { data: {} }
+  formData.append('request', buildDataRequestBlob({}))
   formData.append('file', file)
   const res = await fetch('/api/user/uploadAvatar', {
     method: 'POST',
@@ -74,29 +76,17 @@ export const uploadAvatar = async (file: File): Promise<Result<UploadAvatarRespo
 
 // 获取商家收入统计
 export const getRestaurateurStats = async () => {
-  const res = await fetch('/api/restaurateur/stats')
-  if (!res.ok) {
-    return { status: res.status, message: res.statusText }
-  }
-  return await res.json()
+  return postDataRequest('/api/restaurateur/stats', {})
 }
 
 // 获取骑手收入统计
 export const getDeliverymanStats = async () => {
-  const res = await fetch('/api/deliveryman/stats')
-  if (!res.ok) {
-    return { status: res.status, message: res.statusText }
-  }
-  return await res.json()
+  return postDataRequest('/api/deliveryman/stats', {})
 }
 
 // 获取用户统计（管理员）
 export const getUserStats = async () => {
-  const res = await fetch('/api/user/stats')
-  if (!res.ok) {
-    return { status: res.status, message: res.statusText }
-  }
-  return await res.json()
+  return postDataRequest('/api/user/stats', {})
 }
 
 

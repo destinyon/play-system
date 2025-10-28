@@ -206,12 +206,12 @@
               <ul class="order-list">
                 <li v-for="o in ordersModalItems" :key="o.orderId" class="order-item">
                   <div>
-                    <div class="title"><strong>订单</strong> {{ o.orderNo || ('#' + o.orderId) }}
+                    <div class="title"><strong>订单号</strong> {{ o.orderNo || ('#' + o.orderId) }}
                       <span :class="['status-chip', statusClass(o.status)]">{{ zhStatus(o.status) }}</span>
                     </div>
-                    <div class="meta">{{ o.remark || '无备注' }}</div>
+                    <div class="meta">备注：{{ o.remark || '无' }}</div>
                   </div>
-                  <div class="meta">{{ shortTime(o.createdAt) }}</div>
+                  <div class="meta">下单时间：{{ shortTime(o.createdAt) }}</div>
                 </li>
               </ul>
             </div>
@@ -1131,7 +1131,7 @@ function onMessageScroll() {
 <style scoped>
 .chat-page {
   display: grid;
-  grid-template-columns: 320px 1fr 280px;
+  grid-template-columns: 300px 1fr 320px;
   height: calc(100vh - 64px);
   background: #fff9f0;
   color: #502600;
@@ -1141,8 +1141,8 @@ function onMessageScroll() {
   border-right: 1px solid rgba(104, 64, 18, 0.2);
   display: flex;
   flex-direction: column;
-  padding: 16px;
-  gap: 16px;
+  padding: 8px;
+  gap: 8px;
   background: rgba(255, 241, 222, 0.9);
   /* 允许中栏滚动时自身不撑高 */
   min-height: 0;
@@ -1384,7 +1384,7 @@ function onMessageScroll() {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden; /* 禁止水平滚动条，长内容向中间收拢换行 */
-  padding: 20px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -1681,7 +1681,7 @@ function onMessageScroll() {
   overflow: hidden;
 }
 .modal-header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid rgba(80,38,0,.1); }
-.modal-title { margin:0; font-size:16px; }
+.modal-title { margin:0; font-size:16px; color: #ff6d1b;}
 .modal-body { padding:0; overflow-y:auto; }
 .order-list { list-style:none; margin:0; padding:0; }
 .order-item { padding:12px 16px; border-bottom:1px solid rgba(80,38,0,.06); display:grid; grid-template-columns: 1fr auto; gap:8px; }

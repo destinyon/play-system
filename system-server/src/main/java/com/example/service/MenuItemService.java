@@ -1,22 +1,21 @@
 package com.example.service;
 
-import com.example.dto.MenuItemDto;
-import com.example.dto.MenuItemForm;
-import com.example.dto.PageResult;
-
-import java.util.List;
+import com.example.common.DataRequest;
+import com.example.common.Result;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface MenuItemService {
+    Result list(DataRequest request);
 
-    PageResult<MenuItemDto> page(Integer restaurateurId, String keyword, String category, String status, int page, int size);
+    Result detail(DataRequest request);
 
-    MenuItemDto getById(Integer id, Integer restaurateurId);
+    Result listCategories(DataRequest request);
 
-    void create(Integer restaurateurId, MenuItemForm form);
+    Result create(DataRequest request);
 
-    void update(Integer restaurateurId, MenuItemForm form);
+    Result update(DataRequest request);
 
-    void softDelete(Integer id, Integer restaurateurId);
+    Result delete(DataRequest request);
 
-    List<String> listCategories(Integer restaurateurId);
+    Result uploadImage(DataRequest request, MultipartFile file);
 }

@@ -15,6 +15,8 @@ export interface MenuPageRequest {
   keyword?: string
   category?: string
   status?: string
+  sortBy?: string
+  sortOrder?: string
   page?: number
   size?: number
 }
@@ -35,10 +37,12 @@ export async function fetchMenuPage(request: MenuPageRequest): Promise<Result<Pa
         restaurateurId: request.restaurateurId,
         keyword: request.keyword,
         category: request.category,
-        status: request.status
+        status: request.status,
+        sortBy: request.sortBy,
+        sortOrder: request.sortOrder
       },
       page: request.page || 1,
-      size: request.size || 8
+      size: request.size || 12
     })
   })
   if (!res.ok) {

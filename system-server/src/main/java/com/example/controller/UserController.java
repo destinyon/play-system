@@ -53,9 +53,10 @@ public class UserController {
         return userService.changePassword(dataRequest);
     }
 
-    @PostMapping("/uploadAvatar")
-    public Result uploadAvatar(@RequestParam("file") MultipartFile file) {
-        return userService.uploadAvatar(file);
+    @PostMapping(value = "/uploadAvatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Result uploadAvatar(@RequestPart("request") DataRequest request,
+                               @RequestPart("file") MultipartFile file) {
+        return userService.uploadAvatar(request, file);
     }
 
     @GetMapping("/avatar/{filename:.+}")
@@ -82,8 +83,8 @@ public class UserController {
 
 
 
-    @GetMapping("/stats")
-    public Result getUserStats() {
-        return userService.getUserStats();
+    @PostMapping("/stats")
+    public Result getUserStats(@RequestBody DataRequest dataRequest) {
+        return userService.getUserStats(dataRequest);
     }
 }

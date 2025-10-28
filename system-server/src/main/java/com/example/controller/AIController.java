@@ -6,9 +6,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.util.FileCopyUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,8 +62,38 @@ public class AIController {
 
             Map<String, Object> deepseekRequest = new HashMap<>();
             deepseekRequest.put("model", resolvedModel);
-            // 直接透传messages，支持富内容（如图片/文件）结构
-            deepseekRequest.put("messages", payload.get("messages"));
+
+            // 是否注入项目上下文，由前端传入 includeProjectContext 决定（默认不注入）
+            boolean includeCtx = false;
+            Object includeOpt = payload.get("includeProjectContext");
+            if (includeOpt instanceof Boolean) {
+                includeCtx = (Boolean) includeOpt;
+            } else if (includeOpt instanceof String) {
+                includeCtx = Boolean.parseBoolean((String) includeOpt);
+            }
+
+            Object originalMessagesObj = payload.get("messages");
+            if (includeCtx) {
+                List<Map<String, Object>> augmentedMessages = new ArrayList<>();
+                String projectContext = readProjectContext(8000);
+                if (projectContext != null && !projectContext.isBlank()) {
+                    Map<String, Object> contextMsg = new HashMap<>();
+                    contextMsg.put("role", "user");
+                    contextMsg.put(
+                            "content",
+                            "[项目上下文]\n" + projectContext +
+                                    "\n---\n请在回答问题时优先结合以上背景；若与问题无关，可忽略该上下文。"
+                    );
+                    augmentedMessages.add(contextMsg);
+                }
+                if (originalMessagesObj instanceof List) {
+                    augmentedMessages.addAll((List<Map<String, Object>>) originalMessagesObj);
+                }
+                deepseekRequest.put("messages", augmentedMessages);
+            } else {
+                // 不注入时直接透传
+                deepseekRequest.put("messages", originalMessagesObj);
+            }
             deepseekRequest.put("stream", streamFlag);
 
             // 设置请求头
@@ -93,6 +128,11 @@ public class AIController {
                         result.put("content", message.get("content"));
                         result.put("role", message.get("role"));
                         
+                        // DeepSeek Reasoner 模型的思考过程
+                        if (message.containsKey("reasoning_content")) {
+                            result.put("reasoning_content", message.get("reasoning_content"));
+                        }
+                        
                         // 可选：包含token使用信息
                         if (responseBody.containsKey("usage")) {
                             result.put("usage", responseBody.get("usage"));
@@ -112,6 +152,27 @@ public class AIController {
         } catch (Exception e) {
             log.error("调用DeepSeek API失败", e);
             return Result.error("调用AI服务失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 读取类路径下的项目上下文文件（例如 resources/ai/context.md），并限制最大长度
+     */
+    private String readProjectContext(int maxLength) {
+        try {
+            Resource resource = new ClassPathResource("ai/context.md");
+            if (!resource.exists()) {
+                return null;
+            }
+            byte[] bytes = FileCopyUtils.copyToByteArray(resource.getInputStream());
+            String text = new String(bytes, StandardCharsets.UTF_8);
+            if (text.length() > maxLength) {
+                return text.substring(0, maxLength) + "\n... (已截断)";
+            }
+            return text;
+        } catch (Exception ex) {
+            log.warn("读取项目上下文失败: {}", ex.getMessage());
+            return null;
         }
     }
 }
